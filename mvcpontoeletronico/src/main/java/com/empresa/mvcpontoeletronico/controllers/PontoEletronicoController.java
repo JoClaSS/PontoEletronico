@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -33,14 +34,14 @@ public class PontoEletronicoController {
      * POST /api/pontos
      */
     @PostMapping
-    public ResponseEntity<PontoEletronicoResponse> registrarPonto(@Valid @RequestBody RegistrarPontoRequest request) {
+    public ResponseEntity<?> registrarPonto(@Valid @RequestBody RegistrarPontoRequest request) {
         log.debug("POST /api/pontos - Registrando ponto para usuário: {}", request.getUsuarioId());
         try {
             PontoEletronicoResponse response = pontoService.registrarPonto(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
             log.warn("Erro ao registrar ponto: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
     
@@ -63,7 +64,7 @@ public class PontoEletronicoController {
      * GET /api/pontos/usuario/{usuarioId}/periodo?dataInicio=2024-03-01&dataFim=2024-03-31
      */
     @GetMapping("/usuario/{usuarioId}/periodo")
-    public ResponseEntity<List<PontoEletronicoResponse>> consultarPontosPorPeriodo(
+    public ResponseEntity<?> consultarPontosPorPeriodo(
             @PathVariable UUID usuarioId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim) {
@@ -74,7 +75,7 @@ public class PontoEletronicoController {
             return ResponseEntity.ok(pontos);
         } catch (IllegalArgumentException e) {
             log.warn("Erro ao consultar pontos por período: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
     
@@ -83,7 +84,7 @@ public class PontoEletronicoController {
      * GET /api/pontos/usuario/{usuarioId}/relatorio?dataInicio=2024-03-01&dataFim=2024-03-31
      */
     @GetMapping("/usuario/{usuarioId}/relatorio")
-    public ResponseEntity<RelatorioHorasResponse> gerarRelatorioHoras(
+    public ResponseEntity<?> gerarRelatorioHoras(
             @PathVariable UUID usuarioId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,  
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim) {
@@ -94,7 +95,7 @@ public class PontoEletronicoController {
             return ResponseEntity.ok(relatorio);
         } catch (IllegalArgumentException e) {
             log.warn("Erro ao gerar relatório: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
     
@@ -103,14 +104,14 @@ public class PontoEletronicoController {
      * DELETE /api/pontos/{pontoId}
      */
     @DeleteMapping("/{pontoId}")
-    public ResponseEntity<Void> removerPonto(@PathVariable UUID pontoId) {
+    public ResponseEntity<?> removerPonto(@PathVariable UUID pontoId) {
         log.debug("DELETE /api/pontos/{} - Removendo ponto", pontoId);
         try {
             pontoService.removerPonto(pontoId);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             log.warn("Erro ao remover ponto: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

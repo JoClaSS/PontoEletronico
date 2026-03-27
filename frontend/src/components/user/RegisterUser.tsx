@@ -14,30 +14,23 @@ import {
   Save as SaveIcon,
   Clear as ClearIcon
 } from '@mui/icons-material';
-import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
-import { Backend } from '../../types';
 import type { Usuario } from '../../types';
 
 interface FormData {
   nome: string;
   email: string;
   cpf: string;
-  cargo: string;
-  departamento: string;
 }
 
 const RegisterUser: React.FC = () => {
-  const { selectedBackend } = useAppContext();
   const { useUsuarios } = useApi();
   const { criarUsuario } = useUsuarios();
 
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     email: '',
-    cpf: '',
-    cargo: '',
-    departamento: ''
+    cpf: ''
   });
 
   const [snackbar, setSnackbar] = useState({ 
@@ -71,18 +64,8 @@ const RegisterUser: React.FC = () => {
       return 'Email deve ter um formato válido';
     }
 
-    // CPF é obrigatório apenas para backend MVC
-    if (selectedBackend === Backend.MVC && !formData.cpf.trim()) {
-      return 'CPF é obrigatório para o backend MVC';
-    }
-
-    // Cargo e departamento são obrigatórios apenas para backend Clean
-    if (selectedBackend === Backend.CLEAN && !formData.cargo.trim()) {
-      return 'Cargo é obrigatório para o backend Clean Architecture';
-    }
-
-    if (selectedBackend === Backend.CLEAN && !formData.departamento.trim()) {
-      return 'Departamento é obrigatório para o backend Clean Architecture';
+    if (!formData.cpf.trim()) {
+      return 'CPF é obrigatório';
     }
 
     return null;
@@ -127,24 +110,12 @@ const RegisterUser: React.FC = () => {
     setLoading(true);
 
     try {
-      // Prepara dados baseado no backend selecionado
-      let userData: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'>;
-
-      if (selectedBackend === Backend.MVC) {
-        userData = {
-          nome: formData.nome.trim(),
-          email: formData.email.trim(),
-          cpf: formData.cpf.replace(/\D/g, '')
-        };
-      } else {
-        userData = {
-          nome: formData.nome.trim(),
-          email: formData.email.trim(),
-          cargo: formData.cargo.trim(),
-          departamento: formData.departamento.trim(),
-          ativo: true
-        };
-      }
+      // Prepara dados para MVC
+      const userData: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'> = {
+        nome: formData.nome.trim(),
+        email: formData.email.trim(),
+        cpf: formData.cpf.replace(/\D/g, '')
+      };
 
       await criarUsuario(userData);
 
@@ -158,14 +129,13 @@ const RegisterUser: React.FC = () => {
       setFormData({
         nome: '',
         email: '',
-        cpf: '',
-        cargo: '',
-        departamento: ''
+        cpf: ''
       });
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.message || 'Erro ao criar usuário';
       setSnackbar({ 
         open: true, 
-        message: error instanceof Error ? error.message : 'Erro ao criar usuário', 
+        message: errorMessage, 
         severity: 'error' 
       });
     } finally {
@@ -177,9 +147,7 @@ const RegisterUser: React.FC = () => {
     setFormData({
       nome: '',
       email: '',
-      cpf: '',
-      cargo: '',
-      departamento: ''
+      cpf: ''
     });
   };
 
@@ -194,15 +162,6 @@ const RegisterUser: React.FC = () => {
               Cadastrar Usuário
             </Typography>
           </Box>
-
-          {/* Informação sobre backend ativo */}
-          <Alert severity="info" sx={{ mb: 3 }}>
-            Backend ativo: <strong>{selectedBackend === Backend.MVC ? 'MVC Architecture' : 'Clean Architecture'}</strong>
-            {selectedBackend === Backend.MVC ? 
-              ' (CPF obrigatório)' : 
-              ' (Cargo e Departamento obrigatórios)'
-            }
-          </Alert>
 
           {/* Formulário */}
           <Box component="form" onSubmit={handleSubmit}>
@@ -232,51 +191,18 @@ const RegisterUser: React.FC = () => {
                 </Box>
               </Box>
 
-              {/* Linha 2: Campos específicos por backend */}
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                {/* CPF - visível apenas para backend MVC */}
-                {selectedBackend === Backend.MVC && (
-                  <Box sx={{ flex: 1, minWidth: 280 }}>
-                    <TextField
-                      fullWidth
-                      label="CPF"
-                      value={formData.cpf}
-                      onChange={handleCPFChange}
-                      placeholder="000.000.000-00"
-                      required
-                      variant="outlined"
-                      inputProps={{ maxLength: 14 }}
-                    />
-                  </Box>
-                )}
-
-                {/* Cargo - visível apenas para backend Clean */}
-                {selectedBackend === Backend.CLEAN && (
-                  <Box sx={{ flex: 1, minWidth: 280 }}>
-                    <TextField
-                      fullWidth
-                      label="Cargo"
-                      value={formData.cargo}
-                      onChange={handleInputChange('cargo')}
-                      required
-                      variant="outlined"
-                    />
-                  </Box>
-                )}
-
-                {/* Departamento - visível apenas para backend Clean */}
-                {selectedBackend === Backend.CLEAN && (
-                  <Box sx={{ flex: 1, minWidth: 280 }}>
-                    <TextField
-                      fullWidth
-                      label="Departamento"
-                      value={formData.departamento}
-                      onChange={handleInputChange('departamento')}
-                      required
-                      variant="outlined"
-                    />
-                  </Box>
-                )}
+              {/* Linha 2: CPF */}
+              <Box sx={{ flex: 1, minWidth: 280 }}>
+                <TextField
+                  fullWidth
+                  label="CPF"
+                  value={formData.cpf}
+                  onChange={handleCPFChange}
+                  placeholder="000.000.000-00"
+                  required
+                  variant="outlined"
+                  inputProps={{ maxLength: 14 }}
+                />
               </Box>
 
               {/* Botões de ação */}

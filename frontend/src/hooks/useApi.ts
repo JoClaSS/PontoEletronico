@@ -1,15 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { apiService } from '../services/apiService';
 import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, ApiState } from '../types';
 
 export const useApi = () => {
-  const { selectedBackend, setLoading } = useAppContext();
-
-  // Atualiza o backend no serviço quando mudar no contexto
-  useEffect(() => {
-    apiService.setBackend(selectedBackend);
-  }, [selectedBackend]);
+  const { setLoading } = useAppContext();
 
   // Hook para carregar usuários
   const useUsuarios = () => {
@@ -26,11 +21,12 @@ export const useApi = () => {
       try {
         const usuarios = await apiService.getUsuarios();
         setState({ data: usuarios, loading: false, error: null });
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao carregar usuários';
         setState({ 
           data: null, 
           loading: false, 
-          error: error instanceof Error ? error.message : 'Erro ao carregar usuários' 
+          error: errorMessage
         });
       } finally {
         setLoading(false);
@@ -46,12 +42,13 @@ export const useApi = () => {
         // Recarrega a lista após criar
         await loadUsuarios();
         return novoUsuario;
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao criar usuário';
         setState(prev => ({ 
           ...prev, 
-          error: error instanceof Error ? error.message : 'Erro ao criar usuário' 
+          error: errorMessage
         }));
-        throw error; // Re-propaga o erro para o componente
+        throw new Error(errorMessage); // Re-propaga com mensagem personalizada
       } finally {
         setLoading(false);
       }
@@ -78,12 +75,13 @@ export const useApi = () => {
           await loadPontosDeHoje(usuarioId);
         }
         return ponto;
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao registrar ponto';
         setState(prev => ({ 
           ...prev, 
-          error: error instanceof Error ? error.message : 'Erro ao registrar ponto' 
+          error: errorMessage
         }));
-        return null;
+        throw error; // Re-propaga o erro para que o componente possa capturar
       } finally {
         setLoading(false);
       }
@@ -96,11 +94,12 @@ export const useApi = () => {
       try {
         const pontos = await apiService.getPontosDeHoje(userId);
         setState({ data: pontos, loading: false, error: null });
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao carregar pontos';
         setState({ 
           data: null, 
           loading: false, 
-          error: error instanceof Error ? error.message : 'Erro ao carregar pontos' 
+          error: errorMessage
         });
       } finally {
         setLoading(false);
@@ -114,11 +113,12 @@ export const useApi = () => {
       try {
         const pontos = await apiService.getPontosPorPeriodo(userId, filtros);
         setState({ data: pontos, loading: false, error: null });
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao carregar pontos por período';
         setState({ 
           data: null, 
           loading: false, 
-          error: error instanceof Error ? error.message : 'Erro ao carregar histórico' 
+          error: errorMessage
         });
       } finally {
         setLoading(false);
@@ -148,11 +148,12 @@ export const useApi = () => {
       try {
         const relatorio = await apiService.getRelatorioHoras(usuarioId, filtros);
         setState({ data: relatorio, loading: false, error: null });
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao gerar relatório';
         setState({ 
           data: null, 
           loading: false, 
-          error: error instanceof Error ? error.message : 'Erro ao gerar relatório' 
+          error: errorMessage
         });
       } finally {
         setLoading(false);

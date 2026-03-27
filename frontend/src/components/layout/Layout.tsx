@@ -6,32 +6,20 @@ import {
   Typography,
   Button,
   Box,
-  FormControl,
-  Select,
-  MenuItem,
-  InputLabel,
   CircularProgress,
   Container
 } from '@mui/material';
-import type { SelectChangeEvent } from '@mui/material';
 import {
   Home as HomeIcon,
   Schedule as ScheduleIcon,
-  PersonAdd as PersonAddIcon,
-  SwapHoriz as SwapIcon
+  PersonAdd as PersonAddIcon
 } from '@mui/icons-material';
 import { useAppContext } from '../../contexts/AppContext';
-import { BACKEND_CONFIGS } from '../../types';
-import type { Backend as BackendType } from '../../types';
 
 const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { selectedBackend, setSelectedBackend, loading } = useAppContext();
-
-  const handleBackendChange = (event: SelectChangeEvent<string>) => {
-    setSelectedBackend(event.target.value as BackendType);
-  };
+  const { loading } = useAppContext();
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -90,41 +78,6 @@ const Layout: React.FC = () => {
               Usuários
             </Button>
 
-            {/* Seletor de Backend */}
-            <FormControl variant="outlined" size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="backend-select-label" sx={{ color: 'white' }}>
-                Backend
-              </InputLabel>
-              <Select
-                labelId="backend-select-label"
-                value={selectedBackend}
-                onChange={handleBackendChange}
-                label="Backend"
-                startAdornment={<SwapIcon sx={{ mr: 1 }} />}
-                sx={{
-                  color: 'white',
-                  '.MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.23)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'white',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'white',
-                  },
-                  '.MuiSvgIcon-root': {
-                    color: 'white',
-                  },
-                }}
-              >
-                {Object.values(BACKEND_CONFIGS).map((config) => (
-                  <MenuItem key={config.type} value={config.type}>
-                    {config.name} ({config.port})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
             {/* Indicador de Loading */}
             {loading && (
               <CircularProgress 
@@ -143,5 +96,6 @@ const Layout: React.FC = () => {
     </Box>
   );
 };
+
 
 export default Layout;

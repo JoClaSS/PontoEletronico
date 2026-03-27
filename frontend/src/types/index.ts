@@ -91,8 +91,6 @@ export const BACKEND_CONFIGS: Record<string, BackendConfig> = {
 
 // Context types
 export interface AppContextType {
-  selectedBackend: Backend;
-  setSelectedBackend: (backend: Backend) => void;
   selectedUser: Usuario | null;
   setSelectedUser: (user: Usuario | null) => void;
   usuarios: Usuario[];

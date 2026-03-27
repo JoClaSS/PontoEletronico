@@ -18,7 +18,6 @@ import {
   TableRow,
   Paper,
   Chip,
-  Alert,
   Tabs,
   Tab,
   Stack
@@ -63,7 +62,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const ViewPoints: React.FC = () => {
-  const { selectedUser, setSelectedUser, usuarios, setUsuarios, selectedBackend } = useAppContext();
+  const { selectedUser, setSelectedUser, usuarios, setUsuarios } = useAppContext();
   const { useUsuarios, usePontos, useRelatorios } = useApi();
   const usuariosHook = useUsuarios();
   const pontosHook = usePontos(selectedUser?.id);
@@ -80,7 +79,7 @@ const ViewPoints: React.FC = () => {
     if (usuarios.length === 0) {
       usuariosHook.loadUsuarios();
     }
-  }, [selectedBackend]);
+  }, []);
 
   // Atualiza lista de usuários no contexto quando carregados
   useEffect(() => {
@@ -172,11 +171,6 @@ const ViewPoints: React.FC = () => {
       <Typography variant="h4" component="h1" gutterBottom>
         Visualizar Pontos
       </Typography>
-
-      {/* Backend Atual */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        Conectado ao backend: <strong>{selectedBackend}</strong>
-      </Alert>
 
       {/* Seleção de Usuário */}
       <Card sx={{ mb: 3 }}>

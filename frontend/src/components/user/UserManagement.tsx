@@ -19,7 +19,6 @@ import {
   TextField,
   Alert,
   Snackbar,
-  Chip,
   CircularProgress
 } from '@mui/material';
 import {
@@ -29,21 +28,16 @@ import {
   Clear as ClearIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
-import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
-import { Backend } from '../../types';
 import type { Usuario } from '../../types';
 
 interface FormData {
   nome: string;
   email: string;
   cpf: string;
-  cargo: string;
-  departamento: string;
 }
 
 const UserManagement: React.FC = () => {
-  const { selectedBackend } = useAppContext();
   const { useUsuarios } = useApi();
   const { data: usuarios, loading, error, loadUsuarios, criarUsuario } = useUsuarios();
 
@@ -51,9 +45,7 @@ const UserManagement: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     email: '',
-    cpf: '',
-    cargo: '',
-    departamento: ''
+    cpf: ''
   });
 
   const [snackbar, setSnackbar] = useState({ 
@@ -68,13 +60,6 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     loadUsuarios();
   }, []);
-
-  // Recarrega usuários quando o backend mudar
-  useEffect(() => {
-    if (usuarios) {
-      loadUsuarios();
-    }
-  }, [selectedBackend]);
 
   const handleInputChange = (field: keyof FormData) => (
     event: React.ChangeEvent<HTMLInputElement>
@@ -122,18 +107,8 @@ const UserManagement: React.FC = () => {
       return 'Email deve ter um formato válido';
     }
 
-    // CPF é obrigatório apenas para backend MVC
-    if (selectedBackend === Backend.MVC && !formData.cpf.trim()) {
-      return 'CPF é obrigatório para o backend MVC';
-    }
-
-    // Cargo e departamento são obrigatórios apenas para backend Clean
-    if (selectedBackend === Backend.CLEAN && !formData.cargo.trim()) {
-      return 'Cargo é obrigatório para o backend Clean Architecture';
-    }
-
-    if (selectedBackend === Backend.CLEAN && !formData.departamento.trim()) {
-      return 'Departamento é obrigatório para o backend Clean Architecture';
+    if (!formData.cpf.trim()) {
+      return 'CPF é obrigatório';
     }
 
     return null;
@@ -148,9 +123,7 @@ const UserManagement: React.FC = () => {
     setFormData({
       nome: '',
       email: '',
-      cpf: '',
-      cargo: '',
-      departamento: ''
+      cpf: ''
     });
   };
 
@@ -170,24 +143,12 @@ const UserManagement: React.FC = () => {
     setSubmitLoading(true);
 
     try {
-      // Prepara dados baseado no backend selecionado
-      let userData: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'>;
-
-      if (selectedBackend === Backend.MVC) {
-        userData = {
-          nome: formData.nome.trim(),
-          email: formData.email.trim(),
-          cpf: formData.cpf.replace(/\D/g, '')
-        };
-      } else {
-        userData = {
-          nome: formData.nome.trim(),
-          email: formData.email.trim(),
-          cargo: formData.cargo.trim(),
-          departamento: formData.departamento.trim(),
-          ativo: true
-        };
-      }
+      // Prepara dados para MVC
+      const userData: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'> = {
+        nome: formData.nome.trim(),
+        email: formData.email.trim(),
+        cpf: formData.cpf.replace(/\D/g, '')
+      };
 
       await criarUsuario(userData);
 
@@ -198,10 +159,11 @@ const UserManagement: React.FC = () => {
       });
 
       handleCloseModal();
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.message || 'Erro ao criar usuário';
       setSnackbar({ 
         open: true, 
-        message: error instanceof Error ? error.message : 'Erro ao criar usuário', 
+        message: errorMessage, 
         severity: 'error' 
       });
     } finally {
@@ -251,16 +213,7 @@ const UserManagement: React.FC = () => {
             <TableRow>
               <TableCell><strong>Nome</strong></TableCell>
               <TableCell><strong>Email</strong></TableCell>
-              {selectedBackend === Backend.MVC && (
-                <TableCell><strong>CPF</strong></TableCell>
-              )}
-              {selectedBackend === Backend.CLEAN && (
-                <>
-                  <TableCell><strong>Cargo</strong></TableCell>
-                  <TableCell><strong>Departamento</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
-                </>
-              )}
+              <TableCell><strong>CPF</strong></TableCell>
               <TableCell><strong>Data Criação</strong></TableCell>
             </TableRow>
           </TableHead>
@@ -269,22 +222,7 @@ const UserManagement: React.FC = () => {
               <TableRow key={usuario.id} hover>
                 <TableCell>{usuario.nome}</TableCell>
                 <TableCell>{usuario.email}</TableCell>
-                {selectedBackend === Backend.MVC && (
-                  <TableCell>{usuario.cpf || '-'}</TableCell>
-                )}
-                {selectedBackend === Backend.CLEAN && (
-                  <>
-                    <TableCell>{usuario.cargo || '-'}</TableCell>
-                    <TableCell>{usuario.departamento || '-'}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={usuario.ativo ? 'Ativo' : 'Inativo'} 
-                        color={usuario.ativo ? 'success' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                  </>
-                )}
+                <TableCell>{usuario.cpf || '-'}</TableCell>
                 <TableCell>
                   {usuario.createdAt ? formatDate(usuario.createdAt) : '-'}
                 </TableCell>
@@ -319,12 +257,6 @@ const UserManagement: React.FC = () => {
             </Button>
           </Box>
 
-          {/* Informação sobre backend ativo */}
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Backend ativo: <strong>{selectedBackend === Backend.MVC ? 'MVC Architecture' : 'Clean Architecture'}</strong>
-            {usuarios && ` • ${usuarios.length} usuário(s) encontrado(s)`}
-          </Alert>
-
           {/* Tabela de usuários */}
           {renderUserTable()}
         </CardContent>
@@ -357,15 +289,6 @@ const UserManagement: React.FC = () => {
         
         <form onSubmit={handleSubmit}>
           <DialogContent>
-            {/* Informação sobre backend ativo */}
-            <Alert severity="info" sx={{ mb: 3 }}>
-              Backend ativo: <strong>{selectedBackend === Backend.MVC ? 'MVC Architecture' : 'Clean Architecture'}</strong>
-              {selectedBackend === Backend.MVC ? 
-                ' (CPF obrigatório)' : 
-                ' (Cargo e Departamento obrigatórios)'
-              }
-            </Alert>
-
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {/* Linha 1: Nome e Email */}
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -392,51 +315,18 @@ const UserManagement: React.FC = () => {
                 </Box>
               </Box>
 
-              {/* Linha 2: Campos específicos por backend */}
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                {/* CPF - visível apenas para backend MVC */}
-                {selectedBackend === Backend.MVC && (
-                  <Box sx={{ flex: 1, minWidth: 280 }}>
-                    <TextField
-                      fullWidth
-                      label="CPF"
-                      value={formData.cpf}
-                      onChange={handleCPFChange}
-                      placeholder="000.000.000-00"
-                      required
-                      variant="outlined"
-                      inputProps={{ maxLength: 14 }}
-                    />
-                  </Box>
-                )}
-
-                {/* Cargo - visível apenas para backend Clean */}
-                {selectedBackend === Backend.CLEAN && (
-                  <Box sx={{ flex: 1, minWidth: 280 }}>
-                    <TextField
-                      fullWidth
-                      label="Cargo"
-                      value={formData.cargo}
-                      onChange={handleInputChange('cargo')}
-                      required
-                      variant="outlined"
-                    />
-                  </Box>
-                )}
-
-                {/* Departamento - visível apenas para backend Clean */}
-                {selectedBackend === Backend.CLEAN && (
-                  <Box sx={{ flex: 1, minWidth: 280 }}>
-                    <TextField
-                      fullWidth
-                      label="Departamento"
-                      value={formData.departamento}
-                      onChange={handleInputChange('departamento')}
-                      required
-                      variant="outlined"
-                    />
-                  </Box>
-                )}
+              {/* Linha 2: CPF */}
+              <Box sx={{ flex: 1, minWidth: 280 }}>
+                <TextField
+                  fullWidth
+                  label="CPF"
+                  value={formData.cpf}
+                  onChange={handleCPFChange}
+                  placeholder="000.000.000-00"
+                  required
+                  variant="outlined"
+                  inputProps={{ maxLength: 14 }}
+                />
               </Box>
             </Box>
           </DialogContent>

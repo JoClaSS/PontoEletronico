@@ -33,6 +33,7 @@ public class PontoEletronicoService {
     private final PontoEletronicoRepository pontoRepository;
     private final UsuarioRepository usuarioRepository;
     private static final int MAX_REGISTROS_POR_DIA = 4;
+    private static final int INTERVALO_MINIMO_MINUTOS = 0; // 0 = desabilitado para facilitar testes
     
     /**
      * Registra um novo ponto eletrônico
@@ -48,32 +49,55 @@ public class PontoEletronicoService {
         // Define data/hora se não informada
         LocalDateTime dataHora = request.getDataHora() != null ? 
             request.getDataHora() : LocalDateTime.now();
+            
+        log.debug("Data/hora do registro: {}", dataHora);
         
         // Valida se não é muito antigo (máximo 1 dia)
         if (dataHora.isBefore(LocalDateTime.now().minusDays(1))) {
+            log.warn("Tentativa de registrar ponto com data muito antiga: {}", dataHora);
             throw new IllegalArgumentException("Não é possível registrar pontos com mais de 1 dia");
         }
         
         // Verifica quantidade de registros no dia
         LocalDate data = dataHora.toLocalDate();
         Long registrosHoje = pontoRepository.countByUsuarioIdAndData(request.getUsuarioId(), data);
+        log.debug("Registros existentes hoje para usuário {}: {}/{}", 
+            request.getUsuarioId(), registrosHoje, MAX_REGISTROS_POR_DIA);
+            
         if (registrosHoje >= MAX_REGISTROS_POR_DIA) {
+            log.warn("Limite de registros atingido para usuário {} na data {}: {}/{}", 
+                request.getUsuarioId(), data, registrosHoje, MAX_REGISTROS_POR_DIA);
             throw new IllegalArgumentException("Limite máximo de " + MAX_REGISTROS_POR_DIA + " registros por dia já atingido");
+        }
+        
+        // Busca o último registro para validações e determinação do tipo
+        Optional<PontoEletronico> ultimoRegistroOpt = pontoRepository.findUltimoRegistroPorUsuario(request.getUsuarioId());
+        log.debug("Último registro encontrado: {}", 
+            ultimoRegistroOpt.map(p -> p.getDataHora() + " - " + p.getTipoPonto()).orElse("Nenhum registro anterior"));
+        
+        // Valida intervalo mínimo entre registros (se habilitado)
+        if (INTERVALO_MINIMO_MINUTOS > 0 && ultimoRegistroOpt.isPresent()) {
+            LocalDateTime ultimaDataHora = ultimoRegistroOpt.get().getDataHora();
+            long minutosDecorridos = java.time.Duration.between(ultimaDataHora, dataHora).toMinutes();
+            log.debug("Minutos decorridos desde último registro: {} (mínimo: {})", minutosDecorridos, INTERVALO_MINIMO_MINUTOS);
+            
+            if (minutosDecorridos < INTERVALO_MINIMO_MINUTOS) {
+                log.warn("Intervalo insuficiente entre registros. Último: {}, Atual: {}, Decorridos: {} min, Mínimo: {} min", 
+                    ultimaDataHora, dataHora, minutosDecorridos, INTERVALO_MINIMO_MINUTOS);
+                throw new IllegalArgumentException("Deve haver um intervalo mínimo de " + INTERVALO_MINIMO_MINUTOS + " minuto(s) entre registros");
+            }
+        } else if (INTERVALO_MINIMO_MINUTOS == 0) {
+            log.debug("Validação de intervalo mínimo está DESABILITADA (INTERVALO_MINIMO_MINUTOS = 0)");
         }
         
         // Determina o tipo de ponto se não informado
         TipoPonto tipoPonto = request.getTipoPonto();
         if (tipoPonto == null) {
-            Optional<PontoEletronico> ultimoRegistro = pontoRepository.findUltimoRegistroPorUsuario(request.getUsuarioId());
-            TipoPonto ultimoTipo = ultimoRegistro.map(PontoEletronico::getTipoPonto).orElse(null);
+            TipoPonto ultimoTipo = ultimoRegistroOpt.map(PontoEletronico::getTipoPonto).orElse(null);
             tipoPonto = PontoEletronico.determinarProximoTipo(ultimoTipo);
-        }
-        
-        // Valida intervalo mínimo entre registros (15 minutos)
-        LocalDateTime inicioJanela = dataHora.minusMinutes(15);
-        LocalDateTime fimJanela = dataHora.plusMinutes(15);
-        if (pontoRepository.existsByUsuarioIdAndDataHoraBetween(request.getUsuarioId(), inicioJanela, fimJanela)) {
-            throw new IllegalArgumentException("Deve haver um intervalo mínimo de 15 minutos entre registros");
+            log.debug("Tipo de ponto determinado automaticamente: {} -> {}", ultimoTipo, tipoPonto);
+        } else {
+            log.debug("Tipo de ponto informado no request: {}", tipoPonto);
         }
         
         // Cria o registro

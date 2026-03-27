@@ -41,6 +41,15 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
         console.error(`[${backendType}] CONEXÃO RECUSADA! Backend não está rodando em ${config.baseURL}`);
       }
       
+      // Extrai a mensagem de erro do backend, se disponível
+      if (error.response?.data?.error) {
+        error.userMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        error.userMessage = error.response.data.message;
+      } else {
+        error.userMessage = `Erro ${error.response?.status || 'desconhecido'}`;
+      }
+      
       return Promise.reject(error);
     }
   );

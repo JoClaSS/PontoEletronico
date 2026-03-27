@@ -30,7 +30,7 @@ import { TipoPonto } from '../../types';
 import type { TipoPonto as TipoPontoType } from '../../types';
 
 const RegisterPoint: React.FC = () => {
-  const { selectedUser, setSelectedUser, usuarios, setUsuarios, selectedBackend } = useAppContext();
+  const { selectedUser, setSelectedUser, usuarios, setUsuarios } = useAppContext();
   const { useUsuarios, usePontos } = useApi();
   const usuariosHook = useUsuarios();
   const pontosHook = usePontos(selectedUser?.id);
@@ -52,7 +52,7 @@ const RegisterPoint: React.FC = () => {
     if (usuarios.length === 0) {
       usuariosHook.loadUsuarios();
     }
-  }, [selectedBackend]);
+  }, []);
 
   // Atualiza lista de usuários no contexto quando carregados
   useEffect(() => {
@@ -66,7 +66,7 @@ const RegisterPoint: React.FC = () => {
     if (selectedUser?.id) {
       pontosHook.loadPontosDeHoje(selectedUser.id);
     }
-  }, [selectedUser, selectedBackend]);
+  }, [selectedUser]);
 
   const handleUserChange = (event: SelectChangeEvent<string>) => {
     const userId = event.target.value;
@@ -112,10 +112,12 @@ const RegisterPoint: React.FC = () => {
           severity: 'success'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.userMessage || error.message || 'Erro ao registrar ponto';
+      console.error('[RegisterPoint] Erro:', error);
       setSnackbar({
         open: true,
-        message: 'Erro ao registrar ponto',
+        message: errorMessage,
         severity: 'error'
       });
     }
@@ -165,11 +167,6 @@ const RegisterPoint: React.FC = () => {
       <Typography variant="h4" component="h1" gutterBottom>
         Registrar Ponto
       </Typography>
-
-      {/* Backend Atual */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        Conectado ao backend: <strong>{selectedBackend}</strong>
-      </Alert>
 
       <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
         {/* Card Principal - Registro de Ponto */}
