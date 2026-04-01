@@ -158,7 +158,7 @@ const RegisterUser: React.FC = () => {
           {/* Cabeçalho */}
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
             <PersonAddIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-            <Typography variant="h4" component="h1">
+            <Typography variant="h4" component="h1" sx={{ color: 'black' }}>
               Cadastrar Usuário
             </Typography>
           </Box>
