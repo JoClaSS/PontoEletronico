@@ -4,7 +4,6 @@ import com.empresa.mvcpontoeletronico.dtos.PontoEletronicoResponse;
 import com.empresa.mvcpontoeletronico.dtos.RegistrarPontoRequest;
 import com.empresa.mvcpontoeletronico.dtos.RelatorioHorasResponse;
 import com.empresa.mvcpontoeletronico.entities.PontoEletronico;
-import com.empresa.mvcpontoeletronico.entities.TipoPonto;
 import com.empresa.mvcpontoeletronico.entities.Usuario;
 import com.empresa.mvcpontoeletronico.repositories.PontoEletronicoRepository;
 import com.empresa.mvcpontoeletronico.repositories.UsuarioRepository;
@@ -16,8 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -32,11 +31,14 @@ public class PontoEletronicoService {
     
     private final PontoEletronicoRepository pontoRepository;
     private final UsuarioRepository usuarioRepository;
-    private static final int MAX_REGISTROS_POR_DIA = 4;
+    private static final int MAX_REGISTROS_POR_DIA = 6; // entrada1, saida1, entrada2, saida2, entrada3, saida3
     private static final int INTERVALO_MINIMO_MINUTOS = 10; // 0 = desabilitado para facilitar testes
     
     /**
-     * Registra um novo ponto eletrônico
+     * Registra um novo ponto eletrônico com a nova lógica:
+     * - Busca se já existe registro para a data
+     * - Se não existe, cria novo com entrada1
+     * - Se existe, atualiza próxima coluna disponível
      */
     @Transactional
     public PontoEletronicoResponse registrarPonto(RegistrarPontoRequest request) {
@@ -50,82 +52,110 @@ public class PontoEletronicoService {
         LocalDateTime dataHora = request.getDataHora() != null ? 
             request.getDataHora() : LocalDateTime.now();
             
-        log.debug("Data/hora do registro: {}", dataHora);
-        
-        // Valida se não é muito antigo (máximo 1 dia)
-        if (dataHora.isBefore(LocalDateTime.now().minusDays(1))) {
-            log.warn("Tentativa de registrar ponto com data muito antiga: {}", dataHora);
-            throw new IllegalArgumentException("Não é possível registrar pontos com mais de 1 dia");
-        }
-        
-        // Verifica quantidade de registros no dia
         LocalDate data = dataHora.toLocalDate();
-        Long registrosHoje = pontoRepository.countByUsuarioIdAndData(request.getUsuarioId(), data);
-        log.debug("Registros existentes hoje para usuário {}: {}/{}", 
-            request.getUsuarioId(), registrosHoje, MAX_REGISTROS_POR_DIA);
-            
-        if (registrosHoje >= MAX_REGISTROS_POR_DIA) {
-            log.warn("Limite de registros atingido para usuário {} na data {}: {}/{}", 
-                request.getUsuarioId(), data, registrosHoje, MAX_REGISTROS_POR_DIA);
-            throw new IllegalArgumentException("Limite máximo de " + MAX_REGISTROS_POR_DIA + " registros por dia já atingido");
+        log.debug("Data/hora do registro: {} (data: {})", dataHora, data);
+        
+        // Valida se não é muito antigo (máximo 7 dias)
+        if (dataHora.isBefore(LocalDateTime.now().minusDays(7))) {
+            log.warn("Tentativa de registrar ponto com data muito antiga: {}", dataHora);
+            throw new IllegalArgumentException("Não é possível registrar pontos com mais de 7 dias");
         }
         
-        // Busca o último registro para validações e determinação do tipo
-        Optional<PontoEletronico> ultimoRegistroOpt = pontoRepository.findUltimoRegistroPorUsuario(request.getUsuarioId());
-        log.debug("Último registro encontrado: {}", 
-            ultimoRegistroOpt.map(p -> p.getDataHora() + " - " + p.getTipoPonto()).orElse("Nenhum registro anterior"));
+        // Busca ou cria o registro do dia
+        Optional<PontoEletronico> registroExistenteOpt = pontoRepository.findByUsuarioIdAndData(request.getUsuarioId(), data);
         
-        // Valida intervalo mínimo entre registros (se habilitado)
-        if (INTERVALO_MINIMO_MINUTOS > 0 && ultimoRegistroOpt.isPresent()) {
-            LocalDateTime ultimaDataHora = ultimoRegistroOpt.get().getDataHora();
-            long minutosDecorridos = java.time.Duration.between(ultimaDataHora, dataHora).toMinutes();
-            log.debug("Minutos decorridos desde último registro: {} (mínimo: {})", minutosDecorridos, INTERVALO_MINIMO_MINUTOS);
+        PontoEletronico pontoRegistro;
+        String proximaColuna;
+        
+        if (registroExistenteOpt.isPresent()) {
+            // Atualiza registro existente
+            pontoRegistro = registroExistenteOpt.get();
+            proximaColuna = pontoRegistro.getProximaColunaDisponivel();
             
-            if (minutosDecorridos < INTERVALO_MINIMO_MINUTOS) {
-                log.warn("Intervalo insuficiente entre registros. Último: {}, Atual: {}, Decorridos: {} min, Mínimo: {} min", 
-                    ultimaDataHora, dataHora, minutosDecorridos, INTERVALO_MINIMO_MINUTOS);
-                throw new IllegalArgumentException("Deve haver um intervalo mínimo de " + INTERVALO_MINIMO_MINUTOS + " minuto(s) entre registros");
+            if (proximaColuna == null) {
+                log.warn("Tentativa de registrar ponto quando todas as 6 colunas já estão preenchidas para usuário {} na data {}", 
+                    request.getUsuarioId(), data);
+                throw new IllegalArgumentException("Limite máximo de 6 registros por dia já atingido (3 entradas + 3 saídas)");
             }
-        } else if (INTERVALO_MINIMO_MINUTOS == 0) {
-            log.debug("Validação de intervalo mínimo está DESABILITADA (INTERVALO_MINIMO_MINUTOS = 0)");
-        }
-        
-        // Determina o tipo de ponto se não informado
-        TipoPonto tipoPonto = request.getTipoPonto();
-        if (tipoPonto == null) {
-            TipoPonto ultimoTipo = ultimoRegistroOpt.map(PontoEletronico::getTipoPonto).orElse(null);
-            tipoPonto = PontoEletronico.determinarProximoTipo(ultimoTipo);
-            log.debug("Tipo de ponto determinado automaticamente: {} -> {}", ultimoTipo, tipoPonto);
+            
+            // Valida intervalo mínimo se habilitado
+            if (INTERVALO_MINIMO_MINUTOS > 0) {
+                LocalDateTime ultimoRegistro = getUltimoRegistroDoUsuario(pontoRegistro);
+                if (ultimoRegistro != null) {
+                    long minutosDecorridos = java.time.Duration.between(ultimoRegistro, dataHora).toMinutes();
+                    if (minutosDecorridos < INTERVALO_MINIMO_MINUTOS) {
+                        log.warn("Intervalo insuficiente entre registros. Último: {}, Atual: {}, Decorridos: {} min", 
+                            ultimoRegistro, dataHora, minutosDecorridos);
+                        throw new IllegalArgumentException("Deve haver um intervalo mínimo de " + INTERVALO_MINIMO_MINUTOS + " minuto(s) entre registros");
+                    }
+                }
+            }
+            
+            // Registra o ponto na próxima coluna
+            boolean sucesso = pontoRegistro.registrarPonto(dataHora);
+            if (!sucesso) {
+                throw new IllegalStateException("Erro interno ao registrar ponto");
+            }
+            
+            log.info("Ponto atualizado na coluna {} - ID: {}, Usuário: {}", 
+                proximaColuna, pontoRegistro.getId(), usuario.getNome());
+            
         } else {
-            log.debug("Tipo de ponto informado no request: {}", tipoPonto);
+            // Cria novo registro
+            pontoRegistro = PontoEletronico.builder()
+                .usuario(usuario)
+                .entrada1(dataHora) // Primeiro registro sempre é entrada1
+                .localizacao(request.getLocalizacao()) 
+                .observacao(request.getObservacao())
+                .build();
+            
+            proximaColuna = "entrada1";
+            log.info("Novo registro criado - Usuário: {}, Data: {}", 
+                usuario.getNome(), data);
         }
         
-        // Cria o registro
-        PontoEletronico ponto = PontoEletronico.builder()
-            .usuario(usuario)
-            .dataHora(dataHora)
-            .tipoPonto(tipoPonto)
-            .localizacao(request.getLocalizacao())
-            .observacao(request.getObservacao())
-            .build();
+        // Atualiza localização e observação se fornecidas
+        if (request.getLocalizacao() != null) {
+            pontoRegistro.setLocalizacao(request.getLocalizacao());
+        }
+        if (request.getObservacao() != null) {
+            pontoRegistro.setObservacao(request.getObservacao());
+        }
         
-        PontoEletronico pontoSalvo = pontoRepository.save(ponto);
-        log.info("Ponto registrado com sucesso - ID: {}, Usuário: {}, Tipo: {}", 
-                 pontoSalvo.getId(), usuario.getNome(), tipoPonto);
+        PontoEletronico pontoSalvo = pontoRepository.save(pontoRegistro);
+        log.info("Ponto registrado com sucesso na coluna {} - ID: {}", 
+                 proximaColuna, pontoSalvo.getId());
         
         return mapToResponse(pontoSalvo);
     }
     
     /**
+     * Método auxiliar para encontrar o último registro válido no objeto PontoEletronico
+     */
+    private LocalDateTime getUltimoRegistroDoUsuario(PontoEletronico ponto) {
+        // Retorna o último timestamp não-nulo das colunas de entrada/saída
+        if (ponto.getSaida3() != null) return ponto.getSaida3();
+        if (ponto.getEntrada3() != null) return ponto.getEntrada3();
+        if (ponto.getSaida2() != null) return ponto.getSaida2();
+        if (ponto.getEntrada2() != null) return ponto.getEntrada2();
+        if (ponto.getSaida1() != null) return ponto.getSaida1();
+        if (ponto.getEntrada1() != null) return ponto.getEntrada1();
+        return null;
+    }
+    
+    /**
      * Consulta pontos por usuário e data
+     * Agora retorna os registros de cada coluna do registro único do dia
      */
     public List<PontoEletronicoResponse> consultarPontosPorData(UUID usuarioId, LocalDate data) {
         log.debug("Consultando pontos - Usuário: {}, Data: {}", usuarioId, data);
         
-        List<PontoEletronico> pontos = pontoRepository.findByUsuarioIdAndData(usuarioId, data);
-        return pontos.stream()
-                    .map(this::mapToResponse)
-                    .collect(Collectors.toList());
+        Optional<PontoEletronico> registroOpt = pontoRepository.findByUsuarioIdAndData(usuarioId, data);
+        if (registroOpt.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        return mapToResponseList(registroOpt.get());
     }
     
     /**
@@ -140,10 +170,17 @@ public class PontoEletronicoService {
             throw new IllegalArgumentException("Data início deve ser anterior à data fim");
         }
         
-        List<PontoEletronico> pontos = pontoRepository.findByUsuarioIdAndPeriodo(usuarioId, dataInicio, dataFim);
-        return pontos.stream()
-                    .map(this::mapToResponse)
-                    .collect(Collectors.toList());
+        List<PontoEletronico> registros = pontoRepository.findByUsuarioIdAndPeriodo(usuarioId, dataInicio, dataFim);
+        
+        // Converte cada registro (que pode ter múltiplas colunas) em múltiplas respostas
+        List<PontoEletronicoResponse> todosPontos = new ArrayList<>();
+        for (PontoEletronico registro : registros) {
+            todosPontos.addAll(mapToResponseList(registro));
+        }
+        
+        // Ordena por data/hora
+        todosPontos.sort(Comparator.comparing(PontoEletronicoResponse::getDataHora));
+        return todosPontos;
     }
     
     /**
@@ -157,9 +194,12 @@ public class PontoEletronicoService {
         
         List<PontoEletronico> pontos = pontoRepository.findByUsuarioIdAndPeriodo(usuarioId, dataInicio, dataFim);
         
-        // Agrupa pontos por data
-        Map<LocalDate, List<PontoEletronico>> pontosPorData = pontos.stream()
-            .collect(Collectors.groupingBy(p -> p.getDataHora().toLocalDate()));
+        // Agrupa registros por data (cada registro já representa um dia)
+        Map<LocalDate, PontoEletronico> registrosPorData = pontos.stream()
+            .collect(Collectors.toMap(
+                p -> p.getCreatedAt().toLocalDate(), 
+                Function.identity()
+            ));
         
         List<RelatorioHorasResponse.RegistroDiario> registrosDiarios = new ArrayList<>();
         long totalMinutosPeriodo = 0;
@@ -167,16 +207,19 @@ public class PontoEletronicoService {
         // Processa cada dia no período
         LocalDate dataAtual = dataInicio;
         while (!dataAtual.isAfter(dataFim)) {
-            List<PontoEletronico> pontosData = pontosPorData.getOrDefault(dataAtual, new ArrayList<>());
-            long minutosTrabalhadosDia = calcularHorasTrabalhadasMinutos(pontosData);
+            PontoEletronico registroDia = registrosPorData.get(dataAtual);
+            long minutosTrabalhadosDia = registroDia != null ? calcularHorasTrabalhadasMinutos(registroDia) : 0;
             totalMinutosPeriodo += minutosTrabalhadosDia;
+            
+            List<PontoEletronicoResponse> pontosResponse = registroDia != null ? 
+                mapToResponseList(registroDia) : Collections.emptyList();
             
             RelatorioHorasResponse.RegistroDiario registro = RelatorioHorasResponse.RegistroDiario.builder()
                 .data(dataAtual)
-                .pontos(pontosData.stream().map(this::mapToResponse).collect(Collectors.toList()))
+                .pontos(pontosResponse)
                 .horasTrabalhadasMinutos(minutosTrabalhadosDia)
                 .horasTrabalhadasFormatado(formatarMinutos(minutosTrabalhadosDia))
-                .diaCompleto(pontosData.size() == MAX_REGISTROS_POR_DIA)
+                .diaCompleto(registroDia != null && registroDia.isCompleto())
                 .build();
             
             registrosDiarios.add(registro);
@@ -195,25 +238,25 @@ public class PontoEletronicoService {
     }
     
     /**
-     * Calcula horas trabalhadas em um dia (em minutos)
+     * Calcula horas trabalhadas em um dia (em minutos) - agora usando as colunas entrada/saída
      */
-    private long calcularHorasTrabalhadasMinutos(List<PontoEletronico> pontos) {
-        if (pontos.size() < 2) return 0;
-        
-        // Ordena os pontos por horário
-        pontos.sort(Comparator.comparing(PontoEletronico::getDataHora));
-        
+    private long calcularHorasTrabalhadasMinutos(PontoEletronico registro) {
         long totalMinutos = 0;
-        LocalDateTime inicioTrabalho = null;
         
-        for (PontoEletronico ponto : pontos) {
-            if (ponto.isEntrada()) {
-                inicioTrabalho = ponto.getDataHora();
-            } else if (ponto.isSaida() && inicioTrabalho != null) {
-                Duration duracao = Duration.between(inicioTrabalho, ponto.getDataHora());
-                totalMinutos += duracao.toMinutes();
-                inicioTrabalho = null; // Reset para o próximo período
-            }
+        // Calcula durações entre pares entrada/saída
+        if (registro.getEntrada1() != null && registro.getSaida1() != null) {
+            Duration duracao = Duration.between(registro.getEntrada1(), registro.getSaida1());
+            totalMinutos += duracao.toMinutes();
+        }
+        
+        if (registro.getEntrada2() != null && registro.getSaida2() != null) {
+            Duration duracao = Duration.between(registro.getEntrada2(), registro.getSaida2());
+            totalMinutos += duracao.toMinutes();
+        }
+        
+        if (registro.getEntrada3() != null && registro.getSaida3() != null) {
+            Duration duracao = Duration.between(registro.getEntrada3(), registro.getSaida3());
+            totalMinutos += duracao.toMinutes();
         }
         
         return totalMinutos;
@@ -232,20 +275,58 @@ public class PontoEletronicoService {
     }
     
     /**
-     * Converte PontoEletronico para Response DTO
+     * Converte um registro PontoEletronico em uma lista de responses (uma para cada coluna preenchida)
      */
-    private PontoEletronicoResponse mapToResponse(PontoEletronico ponto) {
+    private List<PontoEletronicoResponse> mapToResponseList(PontoEletronico registro) {
+        List<PontoEletronicoResponse> responses = new ArrayList<>();
+        
+        if (registro.getEntrada1() != null) {
+            responses.add(createResponse(registro, registro.getEntrada1(), "ENTRADA_1", "Entrada 1"));
+        }
+        if (registro.getSaida1() != null) {
+            responses.add(createResponse(registro, registro.getSaida1(), "SAIDA_1", "Saída 1"));
+        }
+        if (registro.getEntrada2() != null) {
+            responses.add(createResponse(registro, registro.getEntrada2(), "ENTRADA_2", "Entrada 2"));
+        }
+        if (registro.getSaida2() != null) {
+            responses.add(createResponse(registro, registro.getSaida2(), "SAIDA_2", "Saída 2"));
+        }
+        if (registro.getEntrada3() != null) {
+            responses.add(createResponse(registro, registro.getEntrada3(), "ENTRADA_3", "Entrada 3"));
+        }
+        if (registro.getSaida3() != null) {
+            responses.add(createResponse(registro, registro.getSaida3(), "SAIDA_3", "Saída 3"));
+        }
+        
+        return responses;
+    }
+    
+    /**
+     * Cria um PontoEletronicoResponse para um registro específico
+     */
+    private PontoEletronicoResponse createResponse(PontoEletronico registro, LocalDateTime dataHora, 
+                                                  String tipoCodigo, String tipoDescricao) {
         return PontoEletronicoResponse.builder()
-            .id(ponto.getId())
-            .usuarioId(ponto.getUsuario().getId())
-            .nomeUsuario(ponto.getUsuario().getNome())
-            .dataHora(ponto.getDataHora())
-            .tipoPonto(ponto.getTipoPonto())
-            .tipoPontoDescricao(ponto.getTipoPonto().getDescricao())
-            .localizacao(ponto.getLocalizacao())
-            .observacao(ponto.getObservacao())
-            .createdAt(ponto.getCreatedAt())
+            .id(registro.getId())
+            .usuarioId(registro.getUsuario().getId())
+            .nomeUsuario(registro.getUsuario().getNome())
+            .dataHora(dataHora)
+            .tipoPonto(tipoCodigo) // Agora é uma string ao invés de enum
+            .tipoPontoDescricao(tipoDescricao)
+            .localizacao(registro.getLocalizacao())
+            .observacao(registro.getObservacao())
+            .createdAt(registro.getCreatedAt())
             .build();
+    }
+    
+    /**
+     * Converte PontoEletronico para Response DTO (método legado - agora retorna apenas a primeira entrada disponível)
+     */
+    private PontoEletronicoResponse mapToResponse(PontoEletronico registro) {
+        // Para compatibilidade, retorna o primeiro registro não-nulo
+        List<PontoEletronicoResponse> responses = mapToResponseList(registro);
+        return responses.isEmpty() ? null : responses.get(0);
     }
     
     /**

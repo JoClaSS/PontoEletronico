@@ -128,31 +128,6 @@ const RegisterPoint: React.FC = () => {
     }
   };
 
-  const getProximoTipoPonto = (): string => {
-    if (!pontosHook.data || pontosHook.data.length === 0) {
-      return 'ENTRADA 1';
-    }
-
-    const ultimoPonto = pontosHook.data[pontosHook.data.length - 1];
-    
-    switch (ultimoPonto.tipo) {
-      case TipoPonto.ENTRADA_1:
-        return 'SAÍDA 1';
-      case TipoPonto.SAIDA_1:
-        return 'ENTRADA 2';
-      case TipoPonto.ENTRADA_2:
-        return 'SAÍDA 2';
-      case TipoPonto.SAIDA_2:
-        return 'ENTRADA 3';
-      case TipoPonto.ENTRADA_3:
-        return 'SAÍDA 3';
-      case TipoPonto.SAIDA_3:
-        return 'ENTRADA 1';
-      default:
-        return 'ENTRADA 1';
-    }
-  };
-
   const getChipColor = (tipo: TipoPontoType) => {
     if (!tipo) return 'default';
     
@@ -206,10 +181,6 @@ const RegisterPoint: React.FC = () => {
         {/* Card Principal - Registro de Ponto */}
         <Card sx={{ flex: 1, minWidth: 400 }}>
           <CardContent>
-            <Typography variant="h6" component="h2" gutterBottom sx={{ color: 'black' }}>
-              <ClockIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Registrar Ponto
-            </Typography>
 
             {/* Horário Atual */}
             <Typography variant="h3" color="primary" align="center" sx={{ my: 3 }}>
@@ -241,13 +212,6 @@ const RegisterPoint: React.FC = () => {
               </Select>
             </FormControl>
 
-            {/* Próximo Tipo de Ponto */}
-            {selectedUser && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Próximo registro: <strong>{getProximoTipoPonto()}</strong>
-              </Alert>
-            )}
-
             {/* Botão de Registro */}
             <Button
               fullWidth
@@ -266,7 +230,7 @@ const RegisterPoint: React.FC = () => {
         <Card sx={{ width: 350 }}>
           <CardContent>
             <Typography variant="h6" component="h2" gutterBottom sx={{ color: 'black' }}>
-              Pontos de Hoje
+              Frequência de Hoje
             </Typography>
 
             {selectedUser ? (
@@ -295,7 +259,6 @@ const RegisterPoint: React.FC = () => {
                                 </Typography>
                               </Box>
                             }
-                            secondary={ponto.observacao}
                           />
                         </ListItem>
                         {index < pontosHook.data!.length - 1 && <Divider />}

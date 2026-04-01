@@ -32,8 +32,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-f
 import { ptBR } from 'date-fns/locale';
 import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
-import { TipoPonto } from '../../types';
-import type { TipoPonto as TipoPontoType, FiltrosPontos } from '../../types';
+import type { FiltrosPontos, PontoAgrupado } from '../../types';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -157,44 +156,58 @@ const ViewPoints: React.FC = () => {
     relatoriosHook.loadRelatorioHoras(selectedUser.id, filtros);
   };
 
-  const getChipColor = (tipo: TipoPontoType) => {
-    switch (tipo) {
-      case TipoPonto.ENTRADA_1:
-        return 'success';
-      case TipoPonto.SAIDA_1:
-        return 'warning';
-      case TipoPonto.ENTRADA_2:
-        return 'success';
-      case TipoPonto.SAIDA_2:
-        return 'warning';
-      case TipoPonto.ENTRADA_3:
-        return 'success';
-      case TipoPonto.SAIDA_3:
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  const getTipoDisplayName = (tipo: TipoPontoType): string => {
-    if (!tipo) return 'N/A';
+  // Função para agrupar pontos por data
+  const agruparPontosPorData = (): PontoAgrupado[] => {
+    if (!pontosHook.data) return [];
     
-    switch (tipo) {
-      case TipoPonto.ENTRADA_1:
-        return 'Entrada 1';
-      case TipoPonto.SAIDA_1:
-        return 'Saída 1';
-      case TipoPonto.ENTRADA_2:
-        return 'Entrada 2';
-      case TipoPonto.SAIDA_2:
-        return 'Saída 2';
-      case TipoPonto.ENTRADA_3:
-        return 'Entrada 3';
-      case TipoPonto.SAIDA_3:
-        return 'Saída 3';
-      default:
-        return String(tipo).replace(/_/g, ' ');
-    }
+    const grupos: Map<string, PontoAgrupado> = new Map();
+    
+    pontosHook.data.forEach(ponto => {
+      const dataStr = format(new Date(ponto.dataHora), 'yyyy-MM-dd');
+      const horaStr = format(new Date(ponto.dataHora), 'HH:mm');
+      
+      if (!grupos.has(dataStr)) {
+        grupos.set(dataStr, {
+          data: dataStr
+        });
+      }
+      
+      const grupo = grupos.get(dataStr)!;
+      
+      // Mapeia o tipo do ponto para a coluna correspondente
+      const tipoUpper = String(ponto.tipo || '').toUpperCase();
+      
+      switch (tipoUpper) {
+        case 'ENTRADA_1':
+          grupo.entrada1 = horaStr;
+          break;
+        case 'SAIDA_1':  
+          grupo.saida1 = horaStr;
+          break;
+        case 'ENTRADA_2':
+          grupo.entrada2 = horaStr;
+          break;
+        case 'SAIDA_2':
+          grupo.saida2 = horaStr;
+          break;
+        case 'ENTRADA_3':
+          grupo.entrada3 = horaStr;
+          break;
+        case 'SAIDA_3':
+          grupo.saida3 = horaStr;
+          break;
+      }
+      
+      // Adiciona observação se houver
+      if (ponto.observacao && !grupo.observacao) {
+        grupo.observacao = ponto.observacao;
+      }
+    });
+    
+    // Converte para array e ordena por data (mais recente primeiro)
+    return Array.from(grupos.values()).sort((a, b) => 
+      new Date(b.data).getTime() - new Date(a.data).getTime()
+    );
   };
 
   return (
@@ -273,7 +286,7 @@ const ViewPoints: React.FC = () => {
                 </Box>
               </Stack>
 
-              {/* Tabela de Pontos */}
+              {/* Tabela de Pontos Agrupada por Data */}
               {pontosHook.loading ? (
                 <Typography>Carregando...</Typography>
               ) : pontosHook.data && pontosHook.data.length > 0 ? (
@@ -281,27 +294,65 @@ const ViewPoints: React.FC = () => {
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Data/Hora</TableCell>
-                        <TableCell>Tipo</TableCell>
-                        <TableCell>Localização</TableCell>
-                        <TableCell>Observação</TableCell>
+                        <TableCell><strong>Data</strong></TableCell>
+                        <TableCell align="center"><strong>Entrada 1</strong></TableCell>
+                        <TableCell align="center"><strong>Saída 1</strong></TableCell>
+                        <TableCell align="center"><strong>Entrada 2</strong></TableCell>
+                        <TableCell align="center"><strong>Saída 2</strong></TableCell>
+                        <TableCell align="center"><strong>Entrada 3</strong></TableCell>
+                        <TableCell align="center"><strong>Saída 3</strong></TableCell>
+                        <TableCell><strong>Observação</strong></TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {pontosHook.data.map((ponto) => (
-                        <TableRow key={ponto.id}>
+                      {agruparPontosPorData().map((registro) => (
+                        <TableRow key={registro.data}>
                           <TableCell>
-                            {format(new Date(ponto.dataHora), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            <strong>{format(new Date(registro.data), "dd/MM/yyyy", { locale: ptBR })}</strong>
                           </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={getTipoDisplayName(ponto.tipo)}
-                              color={getChipColor(ponto.tipo)}
-                              size="small"
-                            />
+                          <TableCell align="center">
+                            {registro.entrada1 ? (
+                              <Chip label={registro.entrada1} color="success" size="small" />
+                            ) : (
+                              <span style={{ color: '#999' }}>-</span>
+                            )}
                           </TableCell>
-                          <TableCell>{ponto.localizacao || '-'}</TableCell>
-                          <TableCell>{ponto.observacao || '-'}</TableCell>
+                          <TableCell align="center">
+                            {registro.saida1 ? (
+                              <Chip label={registro.saida1} color="warning" size="small" />
+                            ) : (
+                              <span style={{ color: '#999' }}>-</span>
+                            )}
+                          </TableCell>
+                          <TableCell align="center">
+                            {registro.entrada2 ? (
+                              <Chip label={registro.entrada2} color="success" size="small" />
+                            ) : (
+                              <span style={{ color: '#999' }}>-</span>
+                            )}
+                          </TableCell>
+                          <TableCell align="center">
+                            {registro.saida2 ? (
+                              <Chip label={registro.saida2} color="warning" size="small" />
+                            ) : (
+                              <span style={{ color: '#999' }}>-</span>
+                            )}
+                          </TableCell>
+                          <TableCell align="center">
+                            {registro.entrada3 ? (
+                              <Chip label={registro.entrada3} color="success" size="small" />
+                            ) : (
+                              <span style={{ color: '#999' }}>-</span>
+                            )}
+                          </TableCell>
+                          <TableCell align="center">
+                            {registro.saida3 ? (
+                              <Chip label={registro.saida3} color="error" size="small" />
+                            ) : (
+                              <span style={{ color: '#999' }}>-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>{registro.observacao || '-'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

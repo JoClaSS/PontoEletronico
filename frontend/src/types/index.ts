@@ -114,3 +114,15 @@ export interface ApiState<T> {
   loading: boolean;
   error: string | null;
 }
+
+// Interface para exibição agrupada de pontos por data
+export interface PontoAgrupado {
+  data: string; // YYYY-MM-DD
+  entrada1?: string; // HH:mm
+  saida1?: string; // HH:mm
+  entrada2?: string; // HH:mm
+  saida2?: string; // HH:mm
+  entrada3?: string; // HH:mm
+  saida3?: string; // HH:mm
+  observacao?: string;
+}
