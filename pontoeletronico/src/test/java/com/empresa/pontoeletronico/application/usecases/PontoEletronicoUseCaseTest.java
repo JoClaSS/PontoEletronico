@@ -104,7 +104,7 @@ class PontoEletronicoUseCaseTest {
                     .build();
             });
         
-        // 1. Registra entrada
+        // 1. Registra entrada 1
         RegistrarPontoRequest requestEntrada = RegistrarPontoRequest.builder()
             .usuarioId(USUARIO_ID)
             .dataHora(LocalDateTime.of(dataHoje, LocalTime.of(8, 0)))
@@ -112,37 +112,37 @@ class PontoEletronicoUseCaseTest {
             .build();
         
         PontoEletronico entrada = registrarPontoUseCase.executar(requestEntrada);
-        assertEquals(TipoPonto.ENTRADA, entrada.getTipo());
+        assertEquals(TipoPonto.ENTRADA_1, entrada.getTipo());
         
-        // 2. Registra saída para almoço
-        RegistrarPontoRequest requestSaidaAlmoco = RegistrarPontoRequest.builder()
+        // 2. Registra saída 1
+        RegistrarPontoRequest requestSaida1 = RegistrarPontoRequest.builder()
             .usuarioId(USUARIO_ID)
             .dataHora(LocalDateTime.of(dataHoje, LocalTime.of(12, 0)))
             .localizacao("Escritório")
             .build();
         
-        PontoEletronico saidaAlmoco = registrarPontoUseCase.executar(requestSaidaAlmoco);
-        assertEquals(TipoPonto.SAIDA_ALMOCO, saidaAlmoco.getTipo());
+        PontoEletronico saida1 = registrarPontoUseCase.executar(requestSaida1);
+        assertEquals(TipoPonto.SAIDA_1, saida1.getTipo());
         
-        // 3. Registra entrada pós-almoço
-        RegistrarPontoRequest requestEntradaAlmoco = RegistrarPontoRequest.builder()
+        // 3. Registra entrada 2
+        RegistrarPontoRequest requestEntrada2 = RegistrarPontoRequest.builder()
             .usuarioId(USUARIO_ID)
             .dataHora(LocalDateTime.of(dataHoje, LocalTime.of(13, 0)))
             .localizacao("Escritório")
             .build();
         
-        PontoEletronico entradaAlmoco = registrarPontoUseCase.executar(requestEntradaAlmoco);
-        assertEquals(TipoPonto.ENTRADA_ALMOCO, entradaAlmoco.getTipo());
+        PontoEletronico entrada2 = registrarPontoUseCase.executar(requestEntrada2);
+        assertEquals(TipoPonto.ENTRADA_2, entrada2.getTipo());
         
-        // 4. Registra saída
-        RegistrarPontoRequest requestSaida = RegistrarPontoRequest.builder()
+        // 4. Registra saída 2
+        RegistrarPontoRequest requestSaida2 = RegistrarPontoRequest.builder()
             .usuarioId(USUARIO_ID)
             .dataHora(LocalDateTime.of(dataHoje, LocalTime.of(17, 0)))
             .localizacao("Escritório")
             .build();
         
-        PontoEletronico saida = registrarPontoUseCase.executar(requestSaida);
-        assertEquals(TipoPonto.SAIDA, saida.getTipo());
+        PontoEletronico saida2 = registrarPontoUseCase.executar(requestSaida2);
+        assertEquals(TipoPonto.SAIDA_2, saida2.getTipo());
         
         // Verifica se salvar foi chamado 4 vezes
         verify(pontoRepository, times(4)).salvar(any(PontoEletronico.class));
@@ -254,19 +254,19 @@ class PontoEletronicoUseCaseTest {
     
     private List<PontoEletronico> criarJornadaCompleta(LocalDate data) {
         return List.of(
-            criarPontoMock(TipoPonto.ENTRADA, LocalDateTime.of(data, LocalTime.of(8, 0))),
-            criarPontoMock(TipoPonto.SAIDA_ALMOCO, LocalDateTime.of(data, LocalTime.of(12, 0))),
-            criarPontoMock(TipoPonto.ENTRADA_ALMOCO, LocalDateTime.of(data, LocalTime.of(13, 0))),
-            criarPontoMock(TipoPonto.SAIDA, LocalDateTime.of(data, LocalTime.of(17, 0)))
+            criarPontoMock(TipoPonto.ENTRADA_1, LocalDateTime.of(data, LocalTime.of(8, 0))),
+            criarPontoMock(TipoPonto.SAIDA_1, LocalDateTime.of(data, LocalTime.of(12, 0))),
+            criarPontoMock(TipoPonto.ENTRADA_2, LocalDateTime.of(data, LocalTime.of(13, 0))),
+            criarPontoMock(TipoPonto.SAIDA_2, LocalDateTime.of(data, LocalTime.of(17, 0)))
         );
     }
     
     private List<PontoEletronico> criarJornadaComHoraExtra(LocalDate data) {
         return List.of(
-            criarPontoMock(TipoPonto.ENTRADA, LocalDateTime.of(data, LocalTime.of(8, 0))),
-            criarPontoMock(TipoPonto.SAIDA_ALMOCO, LocalDateTime.of(data, LocalTime.of(12, 0))),
-            criarPontoMock(TipoPonto.ENTRADA_ALMOCO, LocalDateTime.of(data, LocalTime.of(13, 0))),
-            criarPontoMock(TipoPonto.SAIDA, LocalDateTime.of(data, LocalTime.of(18, 0))) // 1 hora extra
+            criarPontoMock(TipoPonto.ENTRADA_1, LocalDateTime.of(data, LocalTime.of(8, 0))),
+            criarPontoMock(TipoPonto.SAIDA_1, LocalDateTime.of(data, LocalTime.of(12, 0))),
+            criarPontoMock(TipoPonto.ENTRADA_2, LocalDateTime.of(data, LocalTime.of(13, 0))),
+            criarPontoMock(TipoPonto.SAIDA_2, LocalDateTime.of(data, LocalTime.of(18, 0))) // 1 hora extra
         );
     }
 }

@@ -2,10 +2,12 @@
 
 // Tipos de ponto (comum aos dois backends)
 export const TipoPonto = {
-  ENTRADA: 'ENTRADA',
-  SAIDA_ALMOCO: 'SAIDA_ALMOCO',
-  RETORNO_ALMOCO: 'RETORNO_ALMOCO',  
-  SAIDA: 'SAIDA'
+  ENTRADA_1: 'entrada_1',
+  SAIDA_1: 'saida_1',
+  ENTRADA_2: 'entrada_2',
+  SAIDA_2: 'saida_2',
+  ENTRADA_3: 'entrada_3',
+  SAIDA_3: 'saida_3'
 } as const;
 
 export type TipoPonto = typeof TipoPonto[keyof typeof TipoPonto];

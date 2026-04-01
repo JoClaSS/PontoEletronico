@@ -62,23 +62,29 @@ public class RegistrarPontoUseCase {
         return pontoRepository.buscarUltimoRegistroPorUsuario(usuarioId)
             .map(ultimoPonto -> {
                 switch (ultimoPonto.getTipo()) {
-                    case ENTRADA -> {
-                        return TipoPonto.SAIDA_ALMOCO;
+                    case ENTRADA_1 -> {
+                        return TipoPonto.SAIDA_1;
                     }
-                    case SAIDA_ALMOCO -> {
-                        return TipoPonto.ENTRADA_ALMOCO;
+                    case SAIDA_1 -> {
+                        return TipoPonto.ENTRADA_2;
                     }
-                    case ENTRADA_ALMOCO -> {
-                        return TipoPonto.SAIDA;
+                    case ENTRADA_2 -> {
+                        return TipoPonto.SAIDA_2;
                     }
-                    case SAIDA -> {
-                        return TipoPonto.ENTRADA;
+                    case SAIDA_2 -> {
+                        return TipoPonto.ENTRADA_3;
+                    }
+                    case ENTRADA_3 -> {
+                        return TipoPonto.SAIDA_3;
+                    }
+                    case SAIDA_3 -> {
+                        return TipoPonto.ENTRADA_1;
                     }
                     default -> {
-                        return TipoPonto.ENTRADA;
+                        return TipoPonto.ENTRADA_1;
                     }
                 }
             })
-            .orElse(TipoPonto.ENTRADA); // Primeiro registro do dia
+            .orElse(TipoPonto.ENTRADA_1); // Primeiro registro do dia
     }
 }

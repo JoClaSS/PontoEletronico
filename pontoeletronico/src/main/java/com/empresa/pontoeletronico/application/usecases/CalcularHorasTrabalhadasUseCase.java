@@ -82,25 +82,13 @@ public class CalcularHorasTrabalhadasUseCase {
     private Duration calcularHorasTrabalhadasDoPontos(List<PontoEletronico> pontos) {
         Duration totalHoras = Duration.ZERO;
         LocalDateTime entrada = null;
-        LocalDateTime saidaAlmoco = null;
         
         for (PontoEletronico ponto : pontos) {
             switch (ponto.getTipo()) {
-                case ENTRADA -> entrada = ponto.getDataHora();
-                case SAIDA_ALMOCO -> {
+                case ENTRADA_1, ENTRADA_2, ENTRADA_3 -> entrada = ponto.getDataHora();
+                case SAIDA_1, SAIDA_2, SAIDA_3 -> {
                     if (entrada != null) {
-                        saidaAlmoco = ponto.getDataHora();
-                        // Adiciona período da manhã
-                        totalHoras = totalHoras.plus(Duration.between(entrada, saidaAlmoco));
-                    }
-                }
-                case ENTRADA_ALMOCO -> {
-                    // Reinicia a contagem para o período da tarde
-                    entrada = ponto.getDataHora();
-                }
-                case SAIDA -> {
-                    if (entrada != null) {
-                        // Adiciona período da tarde ou expediente completo
+                        // Adiciona período trabalhado
                         totalHoras = totalHoras.plus(Duration.between(entrada, ponto.getDataHora()));
                         entrada = null; // Reset para próximo ciclo
                     }

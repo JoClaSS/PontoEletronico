@@ -56,14 +56,16 @@ public class PontoEletronico {
      */
     public static TipoPonto determinarProximoTipo(TipoPonto ultimoTipo) {
         if (ultimoTipo == null) {
-            return TipoPonto.ENTRADA;
+            return TipoPonto.ENTRADA_1;
         }
         
         return switch (ultimoTipo) {
-            case ENTRADA -> TipoPonto.SAIDA_ALMOCO;
-            case SAIDA_ALMOCO -> TipoPonto.RETORNO_ALMOCO;
-            case RETORNO_ALMOCO -> TipoPonto.SAIDA;
-            case SAIDA -> TipoPonto.ENTRADA; // Para o próximo dia
+            case ENTRADA_1 -> TipoPonto.SAIDA_1;
+            case SAIDA_1 -> TipoPonto.ENTRADA_2;
+            case ENTRADA_2 -> TipoPonto.SAIDA_2;
+            case SAIDA_2 -> TipoPonto.ENTRADA_3;
+            case ENTRADA_3 -> TipoPonto.SAIDA_3;
+            case SAIDA_3 -> TipoPonto.ENTRADA_1; // Para o próximo dia
         };
     }
     
@@ -71,13 +73,17 @@ public class PontoEletronico {
      * Verifica se é um registro de saída
      */
     public boolean isSaida() {
-        return tipoPonto == TipoPonto.SAIDA || tipoPonto == TipoPonto.SAIDA_ALMOCO;
+        return tipoPonto == TipoPonto.SAIDA_1 || 
+               tipoPonto == TipoPonto.SAIDA_2 || 
+               tipoPonto == TipoPonto.SAIDA_3;
     }
     
     /**
      * Verifica se é um registro de entrada
      */
     public boolean isEntrada() {
-        return tipoPonto == TipoPonto.ENTRADA || tipoPonto == TipoPonto.RETORNO_ALMOCO;
+        return tipoPonto == TipoPonto.ENTRADA_1 || 
+               tipoPonto == TipoPonto.ENTRADA_2 || 
+               tipoPonto == TipoPonto.ENTRADA_3;
     }
 }

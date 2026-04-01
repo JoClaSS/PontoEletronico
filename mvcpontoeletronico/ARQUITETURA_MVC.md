@@ -13,7 +13,7 @@ entities/
 ├── Usuario.java           // Entidade de funcionários  
 ├── PontoEletronico.java   // Registro de ponto
 ├── JornadaTrabalho.java   // Tipos de jornada
-└── TipoPonto.java         // Enum: ENTRADA, SAIDA, etc.
+└── TipoPonto.java         // Enum: entrada_1, saida_1, entrada_2, saida_2, entrada_3, saida_3
 ```
 
 **Características**:

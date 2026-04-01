@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -132,17 +132,24 @@ const ViewPoints: React.FC = () => {
     }
   };
 
-  const buscarPontos = () => {
-    if (!selectedUser) return;
+  const buscarPontos = useCallback(() => {
+    if (!selectedUser || !filtros.dataInicio || !filtros.dataFim) return;
     
     if (filtros.dataInicio === filtros.dataFim) {
-      // Pontos de um dia específico
-      pontosHook.loadPontosDeHoje(selectedUser.id);
+      // Pontos de um dia específico - usa a data dos filtros
+      pontosHook.loadPontosPorData?.(selectedUser.id, filtros.dataInicio);
     } else {
       // Pontos de um período
-      pontosHook.loadPontosPorPeriodo(selectedUser.id, filtros);
+      pontosHook.loadPontosPorPeriodo?.(selectedUser.id, filtros);
     }
-  };
+  }, [selectedUser?.id, filtros.dataInicio, filtros.dataFim]);
+
+  // Carrega pontos quando usuário ou filtros mudarem
+  useEffect(() => {
+    if (selectedUser) {
+      buscarPontos();
+    }
+  }, [selectedUser, buscarPontos]);
 
   const gerarRelatorio = () => {
     if (!selectedUser || !filtros.dataInicio || !filtros.dataFim) return;
@@ -152,16 +159,41 @@ const ViewPoints: React.FC = () => {
 
   const getChipColor = (tipo: TipoPontoType) => {
     switch (tipo) {
-      case TipoPonto.ENTRADA:
+      case TipoPonto.ENTRADA_1:
         return 'success';
-      case TipoPonto.SAIDA_ALMOCO:
+      case TipoPonto.SAIDA_1:
         return 'warning';
-      case TipoPonto.RETORNO_ALMOCO:
-        return 'info';
-      case TipoPonto.SAIDA:
+      case TipoPonto.ENTRADA_2:
+        return 'success';
+      case TipoPonto.SAIDA_2:
+        return 'warning';
+      case TipoPonto.ENTRADA_3:
+        return 'success';
+      case TipoPonto.SAIDA_3:
         return 'error';
       default:
         return 'default';
+    }
+  };
+
+  const getTipoDisplayName = (tipo: TipoPontoType): string => {
+    if (!tipo) return 'N/A';
+    
+    switch (tipo) {
+      case TipoPonto.ENTRADA_1:
+        return 'Entrada 1';
+      case TipoPonto.SAIDA_1:
+        return 'Saída 1';
+      case TipoPonto.ENTRADA_2:
+        return 'Entrada 2';
+      case TipoPonto.SAIDA_2:
+        return 'Saída 2';
+      case TipoPonto.ENTRADA_3:
+        return 'Entrada 3';
+      case TipoPonto.SAIDA_3:
+        return 'Saída 3';
+      default:
+        return String(tipo).replace(/_/g, ' ');
     }
   };
 
@@ -263,7 +295,7 @@ const ViewPoints: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <Chip
-                              label={ponto.tipo.replace('_', ' ')}
+                              label={getTipoDisplayName(ponto.tipo)}
                               color={getChipColor(ponto.tipo)}
                               size="small"
                             />

@@ -33,7 +33,7 @@ public class PontoEletronicoService {
     private final PontoEletronicoRepository pontoRepository;
     private final UsuarioRepository usuarioRepository;
     private static final int MAX_REGISTROS_POR_DIA = 4;
-    private static final int INTERVALO_MINIMO_MINUTOS = 0; // 0 = desabilitado para facilitar testes
+    private static final int INTERVALO_MINIMO_MINUTOS = 10; // 0 = desabilitado para facilitar testes
     
     /**
      * Registra um novo ponto eletrônico

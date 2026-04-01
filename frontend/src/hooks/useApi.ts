@@ -70,9 +70,10 @@ export const useApi = () => {
       
       try {
         const ponto = await apiService.registrarPonto(data);
-        // Recarrega a lista após registrar
+        // Recarrega a lista após registrar usando a data atual
         if (usuarioId) {
-          await loadPontosDeHoje(usuarioId);
+          const hoje = new Date().toISOString().split('T')[0];
+          await loadPontosPorData(usuarioId, hoje);
         }
         return ponto;
       } catch (error: any) {
@@ -88,14 +89,39 @@ export const useApi = () => {
     };
 
     const loadPontosDeHoje = async (userId: string) => {
+      console.log('[useApi] Carregando pontos para usuário:', userId);
       setState(prev => ({ ...prev, loading: true, error: null }));
       setLoading(true);
       
       try {
         const pontos = await apiService.getPontosDeHoje(userId);
+        console.log('[useApi] Pontos carregados:', pontos);
         setState({ data: pontos, loading: false, error: null });
       } catch (error: any) {
         const errorMessage = error.userMessage || error.message || 'Erro ao carregar pontos';
+        console.error('[useApi] Erro ao carregar pontos:', error);
+        setState({ 
+          data: null, 
+          loading: false, 
+          error: errorMessage
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const loadPontosPorData = async (userId: string, data: string) => {
+      console.log('[useApi] Carregando pontos para usuário:', userId, 'data:', data);
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      setLoading(true);
+      
+      try {
+        const pontos = await apiService.getPontosPorData(userId, data);
+        console.log('[useApi] Pontos carregados por data:', pontos);
+        setState({ data: pontos, loading: false, error: null });
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao carregar pontos por data';
+        console.error('[useApi] Erro ao carregar pontos por data:', error);
         setState({ 
           data: null, 
           loading: false, 
@@ -129,6 +155,7 @@ export const useApi = () => {
       ...state, 
       registrarPonto, 
       loadPontosDeHoje, 
+      loadPontosPorData,
       loadPontosPorPeriodo 
     };
   };

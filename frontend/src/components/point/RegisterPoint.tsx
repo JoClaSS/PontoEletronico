@@ -64,7 +64,8 @@ const RegisterPoint: React.FC = () => {
   // Carrega pontos do usuário quando selecionado
   useEffect(() => {
     if (selectedUser?.id) {
-      pontosHook.loadPontosDeHoje(selectedUser.id);
+      const hoje = format(new Date(), 'yyyy-MM-dd');
+      pontosHook.loadPontosPorData(selectedUser.id, hoje);
     }
   }, [selectedUser]);
 
@@ -108,7 +109,7 @@ const RegisterPoint: React.FC = () => {
       if (novoPonto) {
         setSnackbar({
           open: true,
-          message: `Ponto registrado com sucesso! Tipo: ${novoPonto.tipo}`,
+          message: `Ponto registrado com sucesso! Tipo: ${getTipoDisplayName(novoPonto.tipo)}`,
           severity: 'success'
         });
       }
@@ -125,22 +126,26 @@ const RegisterPoint: React.FC = () => {
 
   const getProximoTipoPonto = (): string => {
     if (!pontosHook.data || pontosHook.data.length === 0) {
-      return 'ENTRADA';
+      return 'ENTRADA 1';
     }
 
     const ultimoPonto = pontosHook.data[pontosHook.data.length - 1];
     
     switch (ultimoPonto.tipo) {
-      case TipoPonto.ENTRADA:
-        return 'SAÍDA ALMOÇO';
-      case TipoPonto.SAIDA_ALMOCO:
-        return 'RETORNO ALMOÇO';
-      case TipoPonto.RETORNO_ALMOCO:
-        return 'SAÍDA';
-      case TipoPonto.SAIDA:
-        return 'ENTRADA';
+      case TipoPonto.ENTRADA_1:
+        return 'SAÍDA 1';
+      case TipoPonto.SAIDA_1:
+        return 'ENTRADA 2';
+      case TipoPonto.ENTRADA_2:
+        return 'SAÍDA 2';
+      case TipoPonto.SAIDA_2:
+        return 'ENTRADA 3';
+      case TipoPonto.ENTRADA_3:
+        return 'SAÍDA 3';
+      case TipoPonto.SAIDA_3:
+        return 'ENTRADA 1';
       default:
-        return 'ENTRADA';
+        return 'ENTRADA 1';
     }
   };
 
@@ -148,16 +153,41 @@ const RegisterPoint: React.FC = () => {
     if (!tipo) return 'default';
     
     switch (tipo) {
-      case TipoPonto.ENTRADA:
+      case TipoPonto.ENTRADA_1:
         return 'success';
-      case TipoPonto.SAIDA_ALMOCO:
+      case TipoPonto.SAIDA_1:
         return 'warning';
-      case TipoPonto.RETORNO_ALMOCO:
-        return 'info';
-      case TipoPonto.SAIDA:
+      case TipoPonto.ENTRADA_2:
+        return 'success';
+      case TipoPonto.SAIDA_2:
+        return 'warning';
+      case TipoPonto.ENTRADA_3:
+        return 'success';
+      case TipoPonto.SAIDA_3:
         return 'error';
       default:
         return 'default';
+    }
+  };
+
+  const getTipoDisplayName = (tipo: TipoPontoType): string => {
+    if (!tipo) return 'N/A';
+    
+    switch (tipo) {
+      case TipoPonto.ENTRADA_1:
+        return 'Entrada 1';
+      case TipoPonto.SAIDA_1:
+        return 'Saída 1';
+      case TipoPonto.ENTRADA_2:
+        return 'Entrada 2';
+      case TipoPonto.SAIDA_2:
+        return 'Saída 2';
+      case TipoPonto.ENTRADA_3:
+        return 'Entrada 3';
+      case TipoPonto.SAIDA_3:
+        return 'Saída 3';
+      default:
+        return String(tipo).replace(/_/g, ' ');
     }
   };
 
@@ -252,7 +282,7 @@ const RegisterPoint: React.FC = () => {
                             primary={
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Chip
-                                  label={ponto.tipo ? ponto.tipo.replace('_', ' ') : 'N/A'}
+                                  label={getTipoDisplayName(ponto.tipo)}
                                   color={getChipColor(ponto.tipo)}
                                   size="small"
                                 />

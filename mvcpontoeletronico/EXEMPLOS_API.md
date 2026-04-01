@@ -48,7 +48,7 @@ Content-Type: application/json
   "usuarioId": "{uuid-do-usuario}"
 }
 ```
-> O sistema determina automaticamente o tipo: ENTRADA → SAIDA_ALMOCO → RETORNO_ALMOCO → SAIDA
+> O sistema determina automaticamente o tipo: entrada_1 → saida_1 → entrada_2 → saida_2 → entrada_3 → saida_3
 
 ### 2.2 Registrar Ponto (Específico)
 ```http
@@ -104,7 +104,7 @@ curl -X POST http://localhost:8081/api/usuarios \
 
 ### Passo 2: Registrar sequência de pontos (usar o ID retornado)
 ```bash
-# Entrada (8h)
+# Entrada 1 (8h)
 curl -X POST http://localhost:8081/api/pontos \
 -H "Content-Type: application/json" \
 -d '{
@@ -118,7 +118,7 @@ curl -X POST http://localhost:8081/api/pontos \
 -H "Content-Type: application/json" \
 -d '{
   "usuarioId": "SEU-UUID-AQUI",
-  "tipoPonto": "SAIDA_ALMOCO", 
+  "tipoPonto": "saida_1", 
   "dataHora": "2026-03-24T12:00:00"
 }'
 
@@ -127,7 +127,7 @@ curl -X POST http://localhost:8081/api/pontos \
 -H "Content-Type: application/json" \
 -d '{
   "usuarioId": "SEU-UUID-AQUI",
-  "tipoPonto": "RETORNO_ALMOCO",
+  "tipoPonto": "entrada_2",
   "dataHora": "2026-03-24T13:00:00"
 }'
 
@@ -136,7 +136,7 @@ curl -X POST http://localhost:8081/api/pontos \
 -H "Content-Type: application/json" \
 -d '{
   "usuarioId": "SEU-UUID-AQUI", 
-  "tipoPonto": "SAIDA",
+  "tipoPonto": "saida_2",
   "dataHora": "2026-03-24T18:00:00"
 }'
 ```

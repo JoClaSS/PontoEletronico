@@ -52,10 +52,12 @@ public class PontoEletronicoController {
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<List<PontoEletronicoResponse>> consultarPontosPorData(
             @PathVariable UUID usuarioId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
         
-        log.debug("GET /api/pontos/usuario/{} - Consultando pontos para data: {}", usuarioId, data);
-        List<PontoEletronicoResponse> pontos = pontoService.consultarPontosPorData(usuarioId, data);
+        // Se data não for informada, usa a data atual
+        LocalDate dataConsulta = data != null ? data : LocalDate.now();
+        log.debug("GET /api/pontos/usuario/{} - Consultando pontos para data: {}", usuarioId, dataConsulta);
+        List<PontoEletronicoResponse> pontos = pontoService.consultarPontosPorData(usuarioId, dataConsulta);
         return ResponseEntity.ok(pontos);
     }
     

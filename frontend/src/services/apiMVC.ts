@@ -3,6 +3,30 @@ import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasRes
 
 const apiMVC = createApiClient('MVC');
 
+// Função para mapear resposta do MVC para o formato esperado pelo frontend
+const mapMVCResponseToFrontend = (mvcResponse: any): PontoEletronico => {
+  console.log('[MVC] Mapeando resposta do backend:', mvcResponse);
+  
+  const mapped = {
+    id: mvcResponse.id,
+    usuarioId: mvcResponse.usuarioId,
+    usuario: mvcResponse.nomeUsuario ? { 
+      id: mvcResponse.usuarioId, 
+      nome: mvcResponse.nomeUsuario,
+      email: '',
+      cpf: '' 
+    } : undefined,
+    dataHora: mvcResponse.dataHora,
+    tipo: mvcResponse.tipoPonto, // Mapeia tipoPonto -> tipo
+    localizacao: mvcResponse.localizacao,
+    observacao: mvcResponse.observacao,
+    createdAt: mvcResponse.createdAt
+  };
+  
+  console.log('[MVC] Objeto mapeado:', mapped);
+  return mapped;
+};
+
 export const apiMVCService = {
   // Usuários
   async getUsuarios(): Promise<Usuario[]> {
@@ -56,8 +80,8 @@ export const apiMVCService = {
       throw new Error('usuarioId é obrigatório para registrar ponto');
     }
     
-    const response = await apiMVC.post<PontoEletronico>('/api/pontos', payload);
-    return response.data;
+    const response = await apiMVC.post('/api/pontos', payload);
+    return mapMVCResponseToFrontend(response.data);
   },
 
   async getPontosPorUsuarioEData(usuarioId: string, data?: string): Promise<PontoEletronico[]> {
@@ -66,8 +90,17 @@ export const apiMVCService = {
       url += `?data=${data}`;
     }
     
-    const response = await apiMVC.get<PontoEletronico[]>(url);
-    return response.data;
+    console.log('[MVC] Buscando pontos - URL:', url);
+    console.log('[MVC] UsuarioId:', usuarioId);
+    console.log('[MVC] Data:', data);
+    
+    const response = await apiMVC.get(url);
+    console.log('[MVC] Response data:', response.data);
+    
+    const mappedData = response.data.map(mapMVCResponseToFrontend);
+    console.log('[MVC] Dados mapeados:', mappedData);
+    
+    return mappedData;
   },
 
   async getPontosPorPeriodo(usuarioId: string, filtros: FiltrosPontos): Promise<PontoEletronico[]> {
@@ -75,8 +108,8 @@ export const apiMVCService = {
     if (filtros.dataInicio) params.append('dataInicio', filtros.dataInicio);
     if (filtros.dataFim) params.append('dataFim', filtros.dataFim);
     
-    const response = await apiMVC.get<PontoEletronico[]>(`/api/pontos/usuario/${usuarioId}/periodo?${params}`);
-    return response.data;
+    const response = await apiMVC.get(`/api/pontos/usuario/${usuarioId}/periodo?${params}`);
+    return response.data.map(mapMVCResponseToFrontend);
   },
 
   async getRelatorioHoras(usuarioId: string, filtros: FiltrosPontos): Promise<RelatorioHorasResponse> {
