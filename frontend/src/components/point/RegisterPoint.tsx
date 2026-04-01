@@ -112,6 +112,10 @@ const RegisterPoint: React.FC = () => {
           message: `Ponto registrado com sucesso! Tipo: ${getTipoDisplayName(novoPonto.tipo)}`,
           severity: 'success'
         });
+        
+        // Força uma atualização manual da lista após o sucesso
+        const hoje = format(new Date(), 'yyyy-MM-dd');
+        pontosHook.loadPontosPorData?.(selectedUser.id, hoje);
       }
     } catch (error: any) {
       const errorMessage = error.userMessage || error.message || 'Erro ao registrar ponto';
@@ -194,7 +198,7 @@ const RegisterPoint: React.FC = () => {
   return (
     <Box>
       {/* Título */}
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography variant="h4" component="h1" gutterBottom sx={{ color: 'black' }}>
         Registrar Ponto
       </Typography>
 
@@ -202,7 +206,7 @@ const RegisterPoint: React.FC = () => {
         {/* Card Principal - Registro de Ponto */}
         <Card sx={{ flex: 1, minWidth: 400 }}>
           <CardContent>
-            <Typography variant="h6" component="h2" gutterBottom>
+            <Typography variant="h6" component="h2" gutterBottom sx={{ color: 'black' }}>
               <ClockIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
               Registrar Ponto
             </Typography>
@@ -261,7 +265,7 @@ const RegisterPoint: React.FC = () => {
         {/* Card Lateral - Pontos de Hoje */}
         <Card sx={{ width: 350 }}>
           <CardContent>
-            <Typography variant="h6" component="h2" gutterBottom>
+            <Typography variant="h6" component="h2" gutterBottom sx={{ color: 'black' }}>
               Pontos de Hoje
             </Typography>
 

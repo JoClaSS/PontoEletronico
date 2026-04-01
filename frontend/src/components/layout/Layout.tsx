@@ -28,9 +28,20 @@ const Layout: React.FC = () => {
   const isCurrentPath = (path: string) => location.pathname === path;
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box 
+      sx={{ 
+        flexGrow: 1, 
+        backgroundColor: '#1e3a8a', // azul marinho
+        minHeight: '100vh' 
+      }}
+    >
       {/* AppBar */}
-      <AppBar position="static">
+      <AppBar 
+        position="static"
+        sx={{
+          backgroundColor: '#1e40af' // azul um pouco mais claro que o background
+        }}
+      >
         <Toolbar>
           {/* Logo/Nome do Sistema */}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -52,17 +63,17 @@ const Layout: React.FC = () => {
               Home
             </Button>
 
-            {/* Botão Visualizar Pontos */}
+            {/* Botão Visualizar Frequência */}
             <Button
               color="inherit"
               startIcon={<ScheduleIcon />}
-              onClick={() => handleNavigation('/pontos')}
-              variant={isCurrentPath('/pontos') ? 'outlined' : 'text'}
+              onClick={() => handleNavigation('/frequencia')}
+              variant={isCurrentPath('/frequencia') ? 'outlined' : 'text'}
               sx={{
-                backgroundColor: isCurrentPath('/pontos') ? 'rgba(255,255,255,0.1)' : 'transparent'
+                backgroundColor: isCurrentPath('/frequencia') ? 'rgba(255,255,255,0.1)' : 'transparent'
               }}
             >
-              Pontos
+              Frequência
             </Button>
 
             {/* Botão Usuários */}
@@ -90,7 +101,17 @@ const Layout: React.FC = () => {
       </AppBar>
 
       {/* Conteúdo Principal */}
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          mt: 4, 
+          mb: 4,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: 2,
+          p: 4,
+          minHeight: 'calc(100vh - 200px)'
+        }}
+      >
         <Outlet />
       </Container>
     </Box>

@@ -242,7 +242,7 @@ const UserManagement: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <PeopleIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-              <Typography variant="h4" component="h1">
+              <Typography variant="h4" component="h1" sx={{ color: 'black' }}>
                 Gerenciar Usuários
               </Typography>
             </Box>

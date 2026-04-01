@@ -200,8 +200,8 @@ const ViewPoints: React.FC = () => {
   return (
     <Box>
       {/* Título */}
-      <Typography variant="h4" component="h1" gutterBottom>
-        Visualizar Pontos
+      <Typography variant="h4" component="h1" gutterBottom sx={{ color: 'black' }}>
+        Visualizar Frequência
       </Typography>
 
       {/* Seleção de Usuário */}
@@ -232,12 +232,12 @@ const ViewPoints: React.FC = () => {
       {selectedUser && (
         <Card>
           <CardContent>
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="visualização de pontos">
-              <Tab label="Lista de Pontos" icon={<ScheduleIcon />} />
+            <Tabs value={tabValue} onChange={handleTabChange} aria-label="visualização de frequência">
+              <Tab label="Lista de Registros" icon={<ScheduleIcon />} />
               <Tab label="Relatório de Horas" icon={<ReportIcon />} />
             </Tabs>
 
-            {/* Aba: Lista de Pontos */}
+            {/* Aba: Lista de Registros */}
             <TabPanel value={tabValue} index={0}>
               {/* Filtros */}
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }}>

@@ -70,10 +70,10 @@ export const useApi = () => {
       
       try {
         const ponto = await apiService.registrarPonto(data);
-        // Recarrega a lista após registrar usando a data atual
-        if (usuarioId) {
+        // Recarrega a lista após registrar usando o usuarioId do request
+        if (data.usuarioId) {
           const hoje = new Date().toISOString().split('T')[0];
-          await loadPontosPorData(usuarioId, hoje);
+          await loadPontosPorData(data.usuarioId, hoje);
         }
         return ponto;
       } catch (error: any) {

@@ -33,7 +33,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<RegisterPoint />} />
-              <Route path="pontos" element={<ViewPoints />} />
+              <Route path="frequencia" element={<ViewPoints />} />
               <Route path="usuarios" element={<UserManagement />} />
               <Route path="usuarios/cadastrar" element={<RegisterUser />} />
             </Route>
