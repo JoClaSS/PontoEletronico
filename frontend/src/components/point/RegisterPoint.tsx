@@ -19,7 +19,6 @@ import {
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
 import {
-  AccessTime as ClockIcon,
   Person as PersonIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';

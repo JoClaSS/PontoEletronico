@@ -12,7 +12,8 @@ import {
 import {
   Home as HomeIcon,
   Schedule as ScheduleIcon,
-  PersonAdd as PersonAddIcon
+  PersonAdd as PersonAddIcon,
+  Assignment as AssignmentIcon
 } from '@mui/icons-material';
 import { useAppContext } from '../../contexts/AppContext';
 
@@ -87,6 +88,19 @@ const Layout: React.FC = () => {
               }}
             >
               Usuários
+            </Button>
+
+            {/* Botão Solicitações */}
+            <Button
+              color="inherit"
+              startIcon={<AssignmentIcon />}
+              onClick={() => handleNavigation('/solicitacoes')}
+              variant={isCurrentPath('/solicitacoes') ? 'outlined' : 'text'}
+              sx={{
+                backgroundColor: isCurrentPath('/solicitacoes') ? 'rgba(255,255,255,0.1)' : 'transparent'
+              }}
+            >
+              Solicitações
             </Button>
 
             {/* Indicador de Loading */}

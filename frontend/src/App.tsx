@@ -6,6 +6,7 @@ import { AppProvider } from './contexts/AppContext';
 import Layout from './components/layout/Layout';
 import RegisterPoint from './components/point/RegisterPoint';
 import ViewPoints from './components/point/ViewPoints';
+import Solicitacoes from './components/point/Solicitacoes';
 import RegisterUser from './components/user/RegisterUser';
 import UserManagement from './components/user/UserManagement';
 
@@ -36,6 +37,7 @@ function App() {
               <Route path="frequencia" element={<ViewPoints />} />
               <Route path="usuarios" element={<UserManagement />} />
               <Route path="usuarios/cadastrar" element={<RegisterUser />} />
+              <Route path="solicitacoes" element={<Solicitacoes />} />
             </Route>
           </Routes>
         </Router>

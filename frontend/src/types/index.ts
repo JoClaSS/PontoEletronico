@@ -126,3 +126,51 @@ export interface PontoAgrupado {
   saida3?: string; // HH:mm
   observacao?: string;
 }
+
+// Solicitações - Enums e Interfaces
+export const StatusSolicitacao = {
+  ABERTO: 'ABERTO',
+  RESOLVIDO: 'RESOLVIDO',
+  CANCELADO: 'CANCELADO'
+} as const;
+
+export type StatusSolicitacao = typeof StatusSolicitacao[keyof typeof StatusSolicitacao];
+
+export interface MotivoSolicitacao {
+  id: string;
+  descricao: string;
+  ativo?: boolean;
+  requerAnexo: boolean;
+  createdAt?: string;
+}
+
+export interface Solicitacao {
+  id: string;
+  dataReferencia: string; // YYYY-MM-DD
+  usuarioId: string;
+  nomeUsuario: string;
+  motivo: {
+    id: string;
+    descricao: string;
+  };
+  descricao?: string;
+  status: StatusSolicitacao;
+  statusDescricao: string;
+  anexoNome?: string;
+  anexoTipo?: string;
+  anexoTamanho?: number;
+  temAnexo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CriarSolicitacaoRequest {
+  dataReferencia: string; // YYYY-MM-DD
+  usuarioId: string;
+  motivoId: string;
+  descricao: string; // Obrigatório
+  anexoNome?: string;
+  anexoTipo?: string;
+  anexoTamanho?: number;
+  anexoConteudo?: Uint8Array;
+}
