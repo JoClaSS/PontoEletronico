@@ -79,6 +79,11 @@ const Solicitacoes: React.FC = () => {
   });
   const [observacaoResolucao, setObservacaoResolucao] = useState<string>('');
 
+  // Estados dos filtros
+  const [dataInicial, setDataInicial] = useState<Date | null>(null);
+  const [dataFinal, setDataFinal] = useState<Date | null>(null);
+  const [statusSelecionado, setStatusSelecionado] = useState<string>('TODOS');
+
   // Formulário de nova solicitação
   const [novasSolicitacao, setNovaSolicitacao] = useState<CriarSolicitacaoRequest>({
     dataReferencia: '',
@@ -479,6 +484,50 @@ const Solicitacoes: React.FC = () => {
     }
   };
 
+  // Função para filtrar solicitações
+  const getsolicitacoesFiltradas = () => {
+    let solicitacoesFiltradas = [...solicitacoes];
+
+    // Filtro por data
+    if (dataInicial || dataFinal) {
+      solicitacoesFiltradas = solicitacoesFiltradas.filter(solicitacao => {
+        const dataSolicitacao = new Date(solicitacao.dataReferencia + 'T00:00:00');
+        
+        if (dataInicial && dataFinal) {
+          const dataIni = new Date(dataInicial);
+          dataIni.setHours(0, 0, 0, 0);
+          const dataFim = new Date(dataFinal);
+          dataFim.setHours(23, 59, 59, 999);
+          return dataSolicitacao >= dataIni && dataSolicitacao <= dataFim;
+        } else if (dataInicial) {
+          const dataIni = new Date(dataInicial);
+          dataIni.setHours(0, 0, 0, 0);
+          return dataSolicitacao >= dataIni;
+        } else if (dataFinal) {
+          const dataFim = new Date(dataFinal);
+          dataFim.setHours(23, 59, 59, 999);
+          return dataSolicitacao <= dataFim;
+        }
+        return true;
+      });
+    }
+
+    // Filtro por status
+    if (statusSelecionado !== 'TODOS') {
+      solicitacoesFiltradas = solicitacoesFiltradas.filter(
+        solicitacao => solicitacao.status === statusSelecionado
+      );
+    }
+
+    return solicitacoesFiltradas;
+  };
+
+  const limparFiltros = () => {
+    setDataInicial(null);
+    setDataFinal(null);
+    setStatusSelecionado('TODOS');
+  };
+
   return (
     <Box>
       {/* Título */}
@@ -528,10 +577,67 @@ const Solicitacoes: React.FC = () => {
               </Button>
             </Box>
 
+            {/* Filtros */}
+            <Card sx={{ mb: 3, backgroundColor: '#f5f5f5' }}>
+              <CardContent>
+                <Typography variant="subtitle1" gutterBottom>
+                  Filtros
+                </Typography>
+                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={dateFnsLocale}>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <DatePicker
+                      label="Data Inicial"
+                      value={dataInicial}
+                      onChange={(newValue) => setDataInicial(newValue)}
+                      format="dd/MM/yyyy"
+                      slotProps={{
+                        textField: {
+                          size: 'small',
+                          sx: { minWidth: 150 }
+                        }
+                      }}
+                    />
+                    <DatePicker
+                      label="Data Final"
+                      value={dataFinal}
+                      onChange={(newValue) => setDataFinal(newValue)}
+                      format="dd/MM/yyyy"
+                      slotProps={{
+                        textField: {
+                          size: 'small',
+                          sx: { minWidth: 150 }
+                        }
+                      }}
+                    />
+                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        value={statusSelecionado}
+                        label="Status"
+                        onChange={(e) => setStatusSelecionado(e.target.value)}
+                      >
+                        <MenuItem value="TODOS">Todos</MenuItem>
+                        <MenuItem value={StatusSolicitacao.ABERTO}>Aberto</MenuItem>
+                        <MenuItem value={StatusSolicitacao.RESOLVIDO}>Resolvido</MenuItem>
+                        <MenuItem value={StatusSolicitacao.CANCELADO}>Cancelado</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={limparFiltros}
+                    >
+                      Limpar Filtros
+                    </Button>
+                  </Box>
+                </LocalizationProvider>
+              </CardContent>
+            </Card>
+
             {/* Tabela de Solicitações */}
             {loading ? (
               <Typography>Carregando...</Typography>
-            ) : solicitacoes.length > 0 ? (
+            ) : getsolicitacoesFiltradas().length > 0 ? (
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
@@ -544,7 +650,7 @@ const Solicitacoes: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {solicitacoes.map((solicitacao) => (
+                    {getsolicitacoesFiltradas().map((solicitacao) => (
                       <TableRow key={solicitacao.id}>
                         <TableCell>
                           {format(parseISO(solicitacao.dataReferencia + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
@@ -576,9 +682,13 @@ const Solicitacoes: React.FC = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
-            ) : (
+            ) : solicitacoes.length === 0 ? (
               <Typography color="text.secondary">
                 Nenhuma solicitação encontrada para este usuário
+              </Typography>
+            ) : (
+              <Typography color="text.secondary">
+                Nenhuma solicitação encontrada com os filtros aplicados
               </Typography>
             )}
           </CardContent>
