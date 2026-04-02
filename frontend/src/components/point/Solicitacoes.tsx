@@ -23,7 +23,11 @@ import {
   DialogActions,
   TextField,
   Alert,
-  Snackbar
+  Snackbar,
+  IconButton,
+  Menu,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -35,7 +39,10 @@ import {
   Add as AddIcon,
   Visibility as ViewIcon,
   AttachFile as AttachFileIcon,
-  Download as DownloadIcon
+  Download as DownloadIcon,
+  MoreVert as MoreVertIcon,
+  Check as CheckIcon,
+  Cancel as CancelIcon
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -57,6 +64,20 @@ const Solicitacoes: React.FC = () => {
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
   const [motivoSelecionado, setMotivoSelecionado] = useState<MotivoSolicitacao | null>(null);
   const [dataReferencia, setDataReferencia] = useState<Date | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [solicitacaoSelecionada, setSolicitacaoSelecionada] = useState<Solicitacao | null>(null);
+  const [modalVisualizacao, setModalVisualizacao] = useState(false);
+  const [modalResolucao, setModalResolucao] = useState(false);
+  const [modalConfirmacao, setModalConfirmacao] = useState(false);
+  const [pontosReferencia, setPontosReferencia] = useState({
+    entrada1: '',
+    saida1: '',
+    entrada2: '',
+    saida2: '',
+    entrada3: '',
+    saida3: ''
+  });
+  const [observacaoResolucao, setObservacaoResolucao] = useState<string>('');
 
   // Formulário de nova solicitação
   const [novasSolicitacao, setNovaSolicitacao] = useState<CriarSolicitacaoRequest>({
@@ -275,6 +296,163 @@ const Solicitacoes: React.FC = () => {
     }
   };
 
+  const handleFecharMenu = () => {
+    setMenuAnchor(null);
+  };
+
+  const handleLimparSelecao = () => {
+    setSolicitacaoSelecionada(null);
+  };
+
+  const handleVisualizarSolicitacao = () => {
+    setModalVisualizacao(true);
+    handleFecharMenu();
+  };
+
+  const handleAbrirResolucao = async () => {
+    if (!solicitacaoSelecionada) return;
+    
+    try {
+      // Busca os pontos da data referente
+      const response = await fetch(`http://localhost:8081/api/pontos/usuario/${solicitacaoSelecionada.usuarioId}?data=${solicitacaoSelecionada.dataReferencia}`);
+      
+      if (response.ok) {
+        const pontos = await response.json();
+        
+        if (pontos && pontos.length > 0) {
+          // Se há pontos, preenche os campos
+          const pontosOrdenados = pontos.sort((a, b) => 
+            new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime()
+          ).map(ponto => ({
+            ...ponto,
+            horario: format(new Date(ponto.dataHora), 'HH:mm')
+          }));
+          
+          setPontosReferencia({
+            entrada1: pontosOrdenados[0]?.horario || '',
+            saida1: pontosOrdenados[1]?.horario || '',
+            entrada2: pontosOrdenados[2]?.horario || '',
+            saida2: pontosOrdenados[3]?.horario || '',
+            entrada3: pontosOrdenados[4]?.horario || '',
+            saida3: pontosOrdenados[5]?.horario || ''
+          });
+        } else {
+          // Se não há pontos, deixa os campos vazios para serem preenchidos
+          setPontosReferencia({
+            entrada1: '',
+            saida1: '',
+            entrada2: '',
+            saida2: '',
+            entrada3: '',
+            saida3: ''
+          });
+        }
+        
+        setObservacaoResolucao('');
+        setModalResolucao(true);
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Erro ao carregar pontos da data referente',
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar pontos:', error);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar pontos da data referente',
+        severity: 'error'
+      });
+    }
+    
+    handleFecharMenu();
+  };
+
+  const handleResolverSolicitacao = async () => {
+    if (!solicitacaoSelecionada) return;
+    
+    // Validação: observação é obrigatória
+    if (!observacaoResolucao.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Observação é obrigatória para resolver a solicitação',
+        severity: 'error'
+      });
+      return;
+    }
+    
+    try {
+      // Inclui os pontos editados e observação na requisição
+      const response = await fetch(`http://localhost:8081/api/solicitacoes/${solicitacaoSelecionada.id}/resolver`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pontos: pontosReferencia,
+          observacao: observacaoResolucao.trim(),
+          dataReferencia: solicitacaoSelecionada.dataReferencia
+        })
+      });
+
+      if (response.ok) {
+        setSnackbar({
+          open: true,
+          message: 'Solicitação resolvida com sucesso!',
+          severity: 'success'
+        });
+        setModalResolucao(false);
+        handleLimparSelecao();
+        carregarSolicitacoes();
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao resolver solicitação');
+      }
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Erro ao resolver solicitação',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleAbrirConfirmacao = () => {
+    setModalConfirmacao(true);
+    handleFecharMenu();
+  };
+
+  const handleCancelarSolicitacao = async () => {
+    if (!solicitacaoSelecionada) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8081/api/solicitacoes/${solicitacaoSelecionada.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setSnackbar({
+          open: true,
+          message: 'Solicitação cancelada com sucesso!',
+          severity: 'success'
+        });
+        setModalConfirmacao(false);
+        handleLimparSelecao();
+        carregarSolicitacoes();
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao cancelar solicitação');
+      }
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Erro ao cancelar solicitação',
+        severity: 'error'
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case StatusSolicitacao.ABERTO:
@@ -361,7 +539,6 @@ const Solicitacoes: React.FC = () => {
                       <TableCell><strong>Data Referência</strong></TableCell>
                       <TableCell><strong>Motivo</strong></TableCell>
                       <TableCell><strong>Status</strong></TableCell>
-                      <TableCell><strong>Anexo</strong></TableCell>
                       <TableCell><strong>Criado em</strong></TableCell>
                       <TableCell><strong>Ações</strong></TableCell>
                     </TableRow>
@@ -381,32 +558,18 @@ const Solicitacoes: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          {solicitacao.temAnexo ? (
-                            <Button
-                              size="small"
-                              startIcon={<DownloadIcon />}
-                              onClick={() => handleDownloadAnexo(solicitacao.id, solicitacao.anexoNome || 'anexo')}
-                              color="primary"
-                            >
-                              {solicitacao.anexoNome}
-                            </Button>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              Sem anexo
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
                           {format(new Date(solicitacao.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         </TableCell>
                         <TableCell>
-                          <Button
+                          <IconButton
                             size="small"
-                            startIcon={<ViewIcon />}
-                            onClick={() => {/* TODO: Implementar visualização detalhada */}}
+                            onClick={(event) => {
+                              setMenuAnchor(event.currentTarget);
+                              setSolicitacaoSelecionada(solicitacao);
+                            }}
                           >
-                            Ver Detalhes
-                          </Button>
+                            <MoreVertIcon />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -421,6 +584,105 @@ const Solicitacoes: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Menu de Ações */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleFecharMenu}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <MenuItem onClick={handleVisualizarSolicitacao}>
+          <ListItemIcon>
+            <ViewIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Visualizar</ListItemText>
+        </MenuItem>
+        {solicitacaoSelecionada?.status === StatusSolicitacao.ABERTO && (
+          <MenuItem onClick={handleAbrirResolucao}>
+            <ListItemIcon>
+              <CheckIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Resolver</ListItemText>
+          </MenuItem>
+        )}
+        <MenuItem onClick={handleAbrirConfirmacao}>
+          <ListItemIcon>
+            <CancelIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Cancelar</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Modal de Visualização */}
+      <Dialog open={modalVisualizacao} onClose={() => { setModalVisualizacao(false); handleLimparSelecao(); }} maxWidth="md" fullWidth>
+        <DialogTitle>Detalhes da Solicitação</DialogTitle>
+        <DialogContent>
+          {solicitacaoSelecionada && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              <Box>
+                <Typography variant="subtitle2">Data de Referência:</Typography>
+                <Typography variant="body1">
+                  {format(parseISO(solicitacaoSelecionada.dataReferencia + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="subtitle2">Motivo:</Typography>
+                <Typography variant="body1">{solicitacaoSelecionada.motivo.descricao}</Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="subtitle2">Status:</Typography>
+                <Chip
+                  label={getStatusLabel(solicitacaoSelecionada.status)}
+                  color={getStatusColor(solicitacaoSelecionada.status)}
+                  size="small"
+                />
+              </Box>
+              
+              <Box>
+                <Typography variant="subtitle2">Descrição:</Typography>
+                <Typography variant="body1">{solicitacaoSelecionada.descricao}</Typography>
+              </Box>
+              
+              {solicitacaoSelecionada.temAnexo && (
+                <Box>
+                  <Typography variant="subtitle2">Anexo:</Typography>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => handleDownloadAnexo(solicitacaoSelecionada.id, solicitacaoSelecionada.anexoNome || 'anexo')}
+                    sx={{ mt: 1 }}
+                  >
+                    {solicitacaoSelecionada.anexoNome}
+                  </Button>
+                </Box>
+              )}
+              
+              <Box>
+                <Typography variant="subtitle2">Criado em:</Typography>
+                <Typography variant="body1">
+                  {format(new Date(solicitacaoSelecionada.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </Typography>
+              </Box>
+              
+              {solicitacaoSelecionada.updatedAt && solicitacaoSelecionada.updatedAt !== solicitacaoSelecionada.createdAt && (
+                <Box>
+                  <Typography variant="subtitle2">Atualizado em:</Typography>
+                  <Typography variant="body1">
+                    {format(new Date(solicitacaoSelecionada.updatedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setModalVisualizacao(false); handleLimparSelecao(); }}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog para Nova Solicitação */}
       <Dialog open={dialogAberto} onClose={handleFecharDialog} maxWidth="sm" fullWidth>
@@ -521,11 +783,162 @@ const Solicitacoes: React.FC = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Modal de Resolução */}
+      <Dialog open={modalResolucao} onClose={() => { setModalResolucao(false); handleLimparSelecao(); }} maxWidth="md" fullWidth>
+        <DialogTitle>Resolver Solicitação</DialogTitle>
+        <DialogContent>
+          {solicitacaoSelecionada && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              <Box>
+                <Typography variant="subtitle2">Data de Referência:</Typography>
+                <Typography variant="body1">
+                  {format(parseISO(solicitacaoSelecionada.dataReferencia + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="subtitle2">Motivo:</Typography>
+                <Typography variant="body1">{solicitacaoSelecionada.motivo.descricao}</Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="subtitle2">Descrição:</Typography>
+                <Typography variant="body1">{solicitacaoSelecionada.descricao}</Typography>
+              </Box>
+              
+              {solicitacaoSelecionada.temAnexo && (
+                <Box>
+                  <Typography variant="subtitle2">Anexo:</Typography>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => handleDownloadAnexo(solicitacaoSelecionada.id, solicitacaoSelecionada.anexoNome || 'anexo')}
+                    sx={{ mt: 1 }}
+                  >
+                    {solicitacaoSelecionada.anexoNome}
+                  </Button>
+                </Box>
+              )}
+              
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2 }}>Pontos da Data Referente:</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                    <TextField
+                      label="1ª Entrada"
+                      type="time"
+                      value={pontosReferencia.entrada1}
+                      onChange={(e) => setPontosReferencia(prev => ({ ...prev, entrada1: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                    <TextField
+                      label="1ª Saída"
+                      type="time"
+                      value={pontosReferencia.saida1}
+                      onChange={(e) => setPontosReferencia(prev => ({ ...prev, saida1: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                  </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                    <TextField
+                      label="2ª Entrada"
+                      type="time"
+                      value={pontosReferencia.entrada2}
+                      onChange={(e) => setPontosReferencia(prev => ({ ...prev, entrada2: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                    <TextField
+                      label="2ª Saída"
+                      type="time"
+                      value={pontosReferencia.saida2}
+                      onChange={(e) => setPontosReferencia(prev => ({ ...prev, saida2: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                  </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                    <TextField
+                      label="3ª Entrada"
+                      type="time"
+                      value={pontosReferencia.entrada3}
+                      onChange={(e) => setPontosReferencia(prev => ({ ...prev, entrada3: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                    <TextField
+                      label="3ª Saída"
+                      type="time"
+                      value={pontosReferencia.saida3}
+                      onChange={(e) => setPontosReferencia(prev => ({ ...prev, saida3: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+              
+              <TextField
+                label="Observação *"
+                value={observacaoResolucao}
+                onChange={(e) => setObservacaoResolucao(e.target.value)}
+                multiline
+                rows={3}
+                fullWidth
+                margin="normal"
+                required
+                error={!observacaoResolucao.trim()}
+                helperText={!observacaoResolucao.trim() ? 'Observação é obrigatória' : ''}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setModalResolucao(false); handleLimparSelecao(); }}>Cancelar</Button>
+          <Button 
+            onClick={handleResolverSolicitacao} 
+            variant="contained" 
+            color="success"
+            disabled={!observacaoResolucao.trim()}
+          >
+            Resolver
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Confirmação para Cancelar */}
+      <Dialog open={modalConfirmacao} onClose={() => { setModalConfirmacao(false); handleLimparSelecao(); }}>
+        <DialogTitle>Confirmar Cancelamento</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja cancelar esta solicitação? Esta ação não pode ser desfeita.
+          </Typography>
+          {solicitacaoSelecionada && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="subtitle2">Solicitação:</Typography>
+              <Typography variant="body2">
+                {solicitacaoSelecionada.motivo.descricao} - 
+                {format(parseISO(solicitacaoSelecionada.dataReferencia + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setModalConfirmacao(false); handleLimparSelecao(); }}>Voltar</Button>
+          <Button onClick={handleCancelarSolicitacao} variant="contained" color="warning">
+            Cancelar Solicitação
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Alert severity={snackbar.severity}>
           {snackbar.message}

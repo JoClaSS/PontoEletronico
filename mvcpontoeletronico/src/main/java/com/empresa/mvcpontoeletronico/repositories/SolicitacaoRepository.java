@@ -50,4 +50,9 @@ public interface SolicitacaoRepository extends JpaRepository<Solicitacao, UUID> 
      */
     @Query("SELECT s FROM Solicitacao s ORDER BY s.createdAt DESC")
     List<Solicitacao> findAllOrderByCreatedAtDesc();
+    
+    /**
+     * Verifica se já existe uma solicitação para um usuário numa data específica com status específico
+     */
+    boolean existsByUsuarioIdAndDataReferenciaAndStatus(UUID usuarioId, LocalDate dataReferencia, StatusSolicitacao status);
 }

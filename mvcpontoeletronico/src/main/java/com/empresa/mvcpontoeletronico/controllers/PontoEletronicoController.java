@@ -102,6 +102,28 @@ public class PontoEletronicoController {
     }
     
     /**
+     * Atualiza pontos de uma data específica (usado para resolução de solicitações)
+     * PUT /api/pontos/usuario/{usuarioId}/data/{data}
+     */
+    @PutMapping("/usuario/{usuarioId}/data/{data}")
+    public ResponseEntity<?> atualizarPontosPorData(
+            @PathVariable UUID usuarioId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @RequestBody Map<String, Object> dadosAtualizacao) {
+        
+        log.debug("PUT /api/pontos/usuario/{}/data/{} - Atualizando pontos", usuarioId, data);
+        try {
+            // Aqui você pode implementar a lógica para atualizar os pontos
+            // Por enquanto, vamos apenas retornar sucesso
+            pontoService.atualizarPontosPorData(usuarioId, data, dadosAtualizacao);
+            return ResponseEntity.ok().body(Map.of("message", "Pontos atualizados com sucesso"));
+        } catch (IllegalArgumentException e) {
+            log.warn("Erro ao atualizar pontos: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
      * Remove um registro de ponto
      * DELETE /api/pontos/{pontoId}
      */

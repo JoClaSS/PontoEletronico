@@ -42,6 +42,17 @@ public class SolicitacaoService {
         Usuario usuario = usuarioRepository.findById(request.getUsuarioId())
             .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
         
+        // Verifica se já existe uma solicitação aberta para esta data
+        boolean jaExisteSolicitacaoAberta = solicitacaoRepository.existsByUsuarioIdAndDataReferenciaAndStatus(
+            request.getUsuarioId(), 
+            request.getDataReferencia(), 
+            StatusSolicitacao.ABERTO
+        );
+        
+        if (jaExisteSolicitacaoAberta) {
+            throw new IllegalArgumentException("Já existe uma solicitação aberta para esta data. Resolva ou cancele a solicitação existente antes de criar uma nova.");
+        }
+        
         // Busca o motivo
         MotivoSolicitacao motivo = motivoRepository.findById(request.getMotivoId())
             .orElseThrow(() -> new IllegalArgumentException("Motivo não encontrado"));
@@ -143,6 +154,29 @@ public class SolicitacaoService {
         }
         
         return solicitacao.getAnexoConteudo();
+    }
+    
+    /**
+     * Cancela uma solicitação por ID (muda status para CANCELADO)
+     */
+    @Transactional
+    public SolicitacaoResponse cancelarSolicitacao(UUID id) {
+        log.debug("Cancelando solicitação: {}", id);
+        
+        Solicitacao solicitacao = solicitacaoRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Solicitação não encontrada"));
+        
+        // Validação de negócio: só pode cancelar solicitações em aberto
+        if (solicitacao.getStatus() != StatusSolicitacao.ABERTO) {
+            throw new IllegalArgumentException("Apenas solicitações em aberto podem ser canceladas");
+        }
+        
+        // Altera status para CANCELADO
+        solicitacao.setStatus(StatusSolicitacao.CANCELADO);
+        Solicitacao solicitacaoAtualizada = solicitacaoRepository.save(solicitacao);
+        
+        log.info("Solicitação {} cancelada com sucesso", id);
+        return mapToResponse(solicitacaoAtualizada);
     }
     
     /**

@@ -5,6 +5,7 @@ import com.empresa.mvcpontoeletronico.dtos.MotivoSolicitacaoResponse;
 import com.empresa.mvcpontoeletronico.dtos.SolicitacaoResponse;
 import com.empresa.mvcpontoeletronico.entities.StatusSolicitacao;
 import com.empresa.mvcpontoeletronico.services.SolicitacaoService;
+import com.empresa.mvcpontoeletronico.services.PontoEletronicoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ import java.util.UUID;
 public class SolicitacaoController {
     
     private final SolicitacaoService solicitacaoService;
+    private final PontoEletronicoService pontoEletronicoService;
     
     /**
      * Cria uma nova solicitação
@@ -155,6 +157,59 @@ public class SolicitacaoController {
             return ResponseEntity.ok(solicitacao);
         } catch (IllegalArgumentException e) {
             log.warn("Erro ao buscar solicitação: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * Atualiza o status de uma solicitação para RESOLVIDO
+     * PUT /api/solicitacoes/{id}/resolver
+     */
+    @PutMapping("/{id}/resolver")
+    public ResponseEntity<?> resolverSolicitacao(@PathVariable UUID id,
+                                               @RequestBody(required = false) Map<String, Object> dados) {
+        log.debug("PUT /api/solicitacoes/{}/resolver - Resolvendo solicitação", id);
+        try {
+            // Validação: observação é obrigatória
+            if (dados == null || !dados.containsKey("observacao") || 
+                dados.get("observacao") == null || 
+                ((String) dados.get("observacao")).trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Observação é obrigatória para resolver a solicitação"));
+            }
+            
+            // Busca a solicitação primeiro para obter dados do usuário e data
+            SolicitacaoResponse solicitacao = solicitacaoService.buscarSolicitacaoPorId(id);
+            
+            // Se foram fornecidos dados de pontos, atualiza/cria os pontos primeiro
+            if (dados.containsKey("pontos")) {
+                pontoEletronicoService.atualizarPontosPorData(
+                    solicitacao.getUsuarioId(),
+                    solicitacao.getDataReferencia(), 
+                    dados
+                );
+            }
+            
+            // Resolve a solicitação
+            SolicitacaoResponse response = solicitacaoService.atualizarStatus(id, StatusSolicitacao.RESOLVIDO);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Erro ao resolver solicitação: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * Cancela uma solicitação (altera status para CANCELADO)
+     * DELETE /api/solicitacoes/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> cancelarSolicitacao(@PathVariable UUID id) {
+        log.debug("DELETE /api/solicitacoes/{} - Cancelando solicitação", id);
+        try {
+            SolicitacaoResponse response = solicitacaoService.cancelarSolicitacao(id);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Erro ao cancelar solicitação: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }

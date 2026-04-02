@@ -341,5 +341,100 @@ public class PontoEletronicoService {
         }
         
         pontoRepository.deleteById(pontoId);
+        log.info("Ponto removido com sucesso - ID: {}", pontoId);
+    }
+    
+    /**
+     * Atualiza pontos de uma data específica (para resolução de solicitações)
+     */
+    @Transactional  
+    public void atualizarPontosPorData(UUID usuarioId, LocalDate data, Map<String, Object> dadosAtualizacao) {
+        log.debug("Atualizando pontos para usuário {} na data {}", usuarioId, data);
+        
+        // Busca o usuário
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+            .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+        
+        // Valida observação obrigatória
+        String observacao = (String) dadosAtualizacao.get("observacao");
+        if (observacao == null || observacao.trim().isEmpty()) {
+            throw new IllegalArgumentException("Observação é obrigatória");
+        }
+        
+        // Busca ou cria o registro da data
+        Optional<PontoEletronico> registroOpt = pontoRepository.findByUsuarioIdAndData(usuarioId, data);
+        
+        PontoEletronico registro;
+        boolean isNovoRegistro = false;
+        
+        if (registroOpt.isPresent()) {
+            registro = registroOpt.get();
+            log.debug("Atualizando registro existente para a data {}", data);
+        } else {
+            // Cria novo registro se não existir
+            registro = PontoEletronico.builder()
+                .usuario(usuario)
+                .build();
+            isNovoRegistro = true;
+            log.debug("Criando novo registro para a data {}", data);
+        }
+        
+        // Atualiza os horários se fornecidos nos dados de atualização
+        @SuppressWarnings("unchecked")
+        Map<String, String> pontos = (Map<String, String>) dadosAtualizacao.get("pontos");
+        
+        if (pontos != null) {
+            if (pontos.containsKey("entrada1") && !pontos.get("entrada1").isEmpty()) {
+                registro.setEntrada1(parseHorario(data, pontos.get("entrada1")));
+            }
+            if (pontos.containsKey("saida1") && !pontos.get("saida1").isEmpty()) {
+                registro.setSaida1(parseHorario(data, pontos.get("saida1")));
+            }
+            if (pontos.containsKey("entrada2") && !pontos.get("entrada2").isEmpty()) {
+                registro.setEntrada2(parseHorario(data, pontos.get("entrada2")));
+            }
+            if (pontos.containsKey("saida2") && !pontos.get("saida2").isEmpty()) {
+                registro.setSaida2(parseHorario(data, pontos.get("saida2")));
+            }
+            if (pontos.containsKey("entrada3") && !pontos.get("entrada3").isEmpty()) {
+                registro.setEntrada3(parseHorario(data, pontos.get("entrada3")));
+            }
+            if (pontos.containsKey("saida3") && !pontos.get("saida3").isEmpty()) {
+                registro.setSaida3(parseHorario(data, pontos.get("saida3")));
+            }
+        }
+        
+        // Atualiza observação
+        registro.setObservacao(observacao.trim());
+        
+        pontoRepository.save(registro);
+        
+        if (isNovoRegistro) {
+            log.info("Novo registro de pontos criado para usuário {} na data {} via resolução de solicitação", usuarioId, data);
+        } else {
+            log.info("Pontos atualizados para usuário {} na data {} via resolução de solicitação", usuarioId, data);
+        }
+    }
+    
+    /**
+     * Converte string de horário (HH:mm) para LocalDateTime na data especificada
+     */
+    private LocalDateTime parseHorario(LocalDate data, String horario) {
+        if (horario == null || horario.trim().isEmpty()) {
+            return null;
+        }
+        
+        String[] partes = horario.trim().split(":");
+        if (partes.length != 2) {
+            throw new IllegalArgumentException("Formato de horário inválido: " + horario);
+        }
+        
+        try {
+            int hora = Integer.parseInt(partes[0]);
+            int minuto = Integer.parseInt(partes[1]);
+            return data.atTime(hora, minuto);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Formato de horário inválido: " + horario);
+        }
     }
 }

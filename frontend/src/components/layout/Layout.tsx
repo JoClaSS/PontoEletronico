@@ -45,8 +45,16 @@ const Layout: React.FC = () => {
       >
         <Toolbar>
           {/* Logo/Nome do Sistema */}
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Ponto Eletrônico
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              flexGrow: 1,
+              fontSize: { xs: '16px', sm: '18px', md: '20px' }
+            }}
+          >
+            <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Ponto Eletrônico</Box>
+            <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Ponto</Box>
           </Typography>
 
           {/* Navegação */}
@@ -58,10 +66,13 @@ const Layout: React.FC = () => {
               onClick={() => handleNavigation('/')}
               variant={isCurrentPath('/') ? 'outlined' : 'text'}
               sx={{
-                backgroundColor: isCurrentPath('/') ? 'rgba(255,255,255,0.1)' : 'transparent'
+                backgroundColor: isCurrentPath('/') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                fontSize: { xs: '12px', sm: '14px', md: '16px' },
+                minWidth: { xs: 'auto', sm: '64px' },
+                px: { xs: 1, sm: 2 }
               }}
             >
-              Home
+              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Home</Box>
             </Button>
 
             {/* Botão Visualizar Frequência */}
@@ -71,10 +82,13 @@ const Layout: React.FC = () => {
               onClick={() => handleNavigation('/frequencia')}
               variant={isCurrentPath('/frequencia') ? 'outlined' : 'text'}
               sx={{
-                backgroundColor: isCurrentPath('/frequencia') ? 'rgba(255,255,255,0.1)' : 'transparent'
+                backgroundColor: isCurrentPath('/frequencia') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                fontSize: { xs: '12px', sm: '14px', md: '16px' },
+                minWidth: { xs: 'auto', sm: '64px' },
+                px: { xs: 1, sm: 2 }
               }}
             >
-              Frequência
+              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Frequência</Box>
             </Button>
 
             {/* Botão Usuários */}
@@ -84,10 +98,13 @@ const Layout: React.FC = () => {
               onClick={() => handleNavigation('/usuarios')}
               variant={isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'outlined' : 'text'}
               sx={{
-                backgroundColor: isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'rgba(255,255,255,0.1)' : 'transparent'
+                backgroundColor: isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                fontSize: { xs: '12px', sm: '14px', md: '16px' },
+                minWidth: { xs: 'auto', sm: '64px' },
+                px: { xs: 1, sm: 2 }
               }}
             >
-              Usuários
+              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Usuários</Box>
             </Button>
 
             {/* Botão Solicitações */}
@@ -97,10 +114,13 @@ const Layout: React.FC = () => {
               onClick={() => handleNavigation('/solicitacoes')}
               variant={isCurrentPath('/solicitacoes') ? 'outlined' : 'text'}
               sx={{
-                backgroundColor: isCurrentPath('/solicitacoes') ? 'rgba(255,255,255,0.1)' : 'transparent'
+                backgroundColor: isCurrentPath('/solicitacoes') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                fontSize: { xs: '12px', sm: '14px', md: '16px' },
+                minWidth: { xs: 'auto', sm: '64px' },
+                px: { xs: 1, sm: 2 }
               }}
             >
-              Solicitações
+              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Solicitações</Box>
             </Button>
 
             {/* Indicador de Loading */}
@@ -118,12 +138,14 @@ const Layout: React.FC = () => {
       <Container 
         maxWidth="lg" 
         sx={{ 
-          mt: 4, 
-          mb: 4,
+          mt: { xs: 1, sm: 2, md: 4 }, 
+          mb: { xs: 1, sm: 2, md: 4 },
+          mx: { xs: 1, sm: 2, md: 'auto' },
           backgroundColor: 'rgba(255, 255, 255, 0.95)',
           borderRadius: 2,
-          p: 4,
-          minHeight: 'calc(100vh - 200px)'
+          p: { xs: 1, sm: 2, md: 4 },
+          minHeight: 'calc(100vh - 200px)',
+          width: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 32px)', md: 'auto' }
         }}
       >
         <Outlet />
