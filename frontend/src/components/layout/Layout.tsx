@@ -13,14 +13,15 @@ import {
   Home as HomeIcon,
   Schedule as ScheduleIcon,
   PersonAdd as PersonAddIcon,
-  Assignment as AssignmentIcon
+  Assignment as AssignmentIcon,
+  Logout as LogoutIcon
 } from '@mui/icons-material';
 import { useAppContext } from '../../contexts/AppContext';
 
 const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loading } = useAppContext();
+  const { loading, loggedUser, handleLogout } = useAppContext();
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -129,6 +130,42 @@ const Layout: React.FC = () => {
                 size={24} 
                 sx={{ color: 'white' }} 
               />
+            )}
+
+            {/* Usuário Logado e Logout */}
+            {loggedUser && (
+              <>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    mx: 2, 
+                    display: { xs: 'none', md: 'block' },
+                    color: 'rgba(255, 255, 255, 0.9)'
+                  }}
+                >
+                  Olá, {loggedUser.nome.split(' ')[0]}
+                </Typography>
+                
+                <Button
+                  color="inherit"
+                  startIcon={<LogoutIcon />}
+                  onClick={handleLogout}
+                  variant="outlined"
+                  size="small"
+                  sx={{
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    '&:hover': {
+                      borderColor: 'rgba(255, 255, 255, 0.7)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    fontSize: { xs: '12px', sm: '14px' },
+                    minWidth: { xs: 'auto', sm: '64px' },
+                    px: { xs: 1, sm: 2 }
+                  }}
+                >
+                  <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Sair</Box>
+                </Button>
+              </>
             )}
           </Box>
         </Toolbar>

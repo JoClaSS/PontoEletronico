@@ -2,8 +2,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { ptBR } from '@mui/material/locale';
-import { AppProvider } from './contexts/AppContext';
+import { AppProvider, useAppContext } from './contexts/AppContext';
 import Layout from './components/layout/Layout';
+import Login from './components/auth/Login';
 import RegisterPoint from './components/point/RegisterPoint';
 import ViewPoints from './components/point/ViewPoints';
 import Solicitacoes from './components/point/Solicitacoes';
@@ -25,22 +26,37 @@ const theme = createTheme(
   ptBR // Localização em português
 );
 
+// Componente interno que usa o contexto
+const AppContent: React.FC = () => {
+  const { isLoggedIn } = useAppContext();
+
+  // Se não estiver logado, mostra a tela de login
+  if (!isLoggedIn) {
+    return <Login />;
+  }
+
+  // Se estiver logado, mostra o sistema principal
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<RegisterPoint />} />
+          <Route path="frequencia" element={<ViewPoints />} />
+          <Route path="usuarios" element={<UserManagement />} />
+          <Route path="usuarios/cadastrar" element={<RegisterUser />} />
+          <Route path="solicitacoes" element={<Solicitacoes />} />
+        </Route>
+      </Routes>
+    </Router>
+  );
+};
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<RegisterPoint />} />
-              <Route path="frequencia" element={<ViewPoints />} />
-              <Route path="usuarios" element={<UserManagement />} />
-              <Route path="usuarios/cadastrar" element={<RegisterUser />} />
-              <Route path="solicitacoes" element={<Solicitacoes />} />
-            </Route>
-          </Routes>
-        </Router>
+        <AppContent />
       </AppProvider>
     </ThemeProvider>
   );

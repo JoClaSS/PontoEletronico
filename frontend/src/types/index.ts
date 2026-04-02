@@ -99,6 +99,11 @@ export interface AppContextType {
   setUsuarios: (usuarios: Usuario[]) => void;
   loading: boolean;
   setLoading: (loading: boolean) => void;
+  // Estados de autenticação
+  isLoggedIn: boolean;
+  loggedUser: Usuario | null;
+  handleLogin: (user: Usuario) => void;
+  handleLogout: () => void;
 }
 
 // Filtros para consulta de pontos
