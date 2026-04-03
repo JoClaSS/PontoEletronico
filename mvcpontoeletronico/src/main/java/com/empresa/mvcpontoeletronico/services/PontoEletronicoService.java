@@ -31,7 +31,6 @@ public class PontoEletronicoService {
     
     private final PontoEletronicoRepository pontoRepository;
     private final UsuarioRepository usuarioRepository;
-    private static final int MAX_REGISTROS_POR_DIA = 6; // entrada1, saida1, entrada2, saida2, entrada3, saida3
     private static final int INTERVALO_MINIMO_MINUTOS = 10; // 0 = desabilitado para facilitar testes
     
     /**

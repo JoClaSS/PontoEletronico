@@ -326,9 +326,9 @@ const Solicitacoes: React.FC = () => {
         
         if (pontos && pontos.length > 0) {
           // Se há pontos, preenche os campos
-          const pontosOrdenados = pontos.sort((a, b) => 
+          const pontosOrdenados = pontos.sort((a: { dataHora: string | number | Date; }, b: { dataHora: string | number | Date; }) => 
             new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime()
-          ).map(ponto => ({
+          ).map((ponto: { dataHora: string | number | Date; }) => ({
             ...ponto,
             horario: format(new Date(ponto.dataHora), 'HH:mm')
           }));
