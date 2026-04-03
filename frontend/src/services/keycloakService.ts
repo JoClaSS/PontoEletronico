@@ -128,6 +128,18 @@ class KeycloakService {
   isInitialized(): boolean {
     return this.initialized;
   }
+
+  // Método de debug para verificar status completo
+  getDebugInfo(): any {
+    return {
+      initialized: this.initialized,
+      authenticated: this.isAuthenticated(),
+      hasToken: !!keycloak.token,
+      tokenExpired: keycloak.isTokenExpired(),
+      userProfile: this.getUserProfile(),
+      tokenPreview: keycloak.token ? keycloak.token.substring(0, 50) + '...' : null
+    };
+  }
 }
 
 // Exportar instância singleton

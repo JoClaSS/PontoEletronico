@@ -12,17 +12,34 @@ export const TipoPonto = {
 
 export type TipoPonto = typeof TipoPonto[keyof typeof TipoPonto];
 
+// Roles do sistema
+export const RoleType = {
+  FUNCIONARIO: 'FUNCIONARIO',
+  ADMIN: 'ADMIN'
+} as const;
+
+export type RoleType = typeof RoleType[keyof typeof RoleType];
+
 // Usuario - estrutura comum
 export interface Usuario {
   id: string;
   nome: string;
   email: string;
   cpf?: string; // apenas no backend MVC
+  role?: RoleType; // role do usuário
   cargo?: string; // apenas no backend Clean
   departamento?: string; // apenas no backend Clean
   ativo?: boolean; // apenas no backend Clean
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Request para criar usuário
+export interface CriarUsuarioRequest {
+  nome: string;
+  email: string;
+  cpf: string;
+  role: RoleType;
 }
 
 // PontoEletronico - estrutura comum

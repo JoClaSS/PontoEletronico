@@ -1,4 +1,4 @@
-import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos } from '../types';
+import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, CriarUsuarioRequest } from '../types';
 import { apiMVCService } from './apiMVC';
 
 // Serviço simplificado usando apenas MVC
@@ -16,7 +16,7 @@ export class ApiService {
     return apiMVCService.getUsuarioByEmail(email);
   }
 
-  async criarUsuario(usuario: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'>): Promise<Usuario> {
+  async criarUsuario(usuario: CriarUsuarioRequest): Promise<Usuario> {
     return apiMVCService.criarUsuario(usuario);
   }
 

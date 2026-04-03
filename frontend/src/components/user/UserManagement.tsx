@@ -19,7 +19,11 @@ import {
   TextField,
   Alert,
   Snackbar,
-  CircularProgress
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -29,12 +33,13 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import { useApi } from '../../hooks/useApi';
-import type { Usuario } from '../../types';
+import type { Usuario, CriarUsuarioRequest, RoleType } from '../../types';
 
 interface FormData {
   nome: string;
   email: string;
   cpf: string;
+  role: RoleType;
 }
 
 const UserManagement: React.FC = () => {
@@ -45,7 +50,8 @@ const UserManagement: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     email: '',
-    cpf: ''
+    cpf: '',
+    role: 'FUNCIONARIO'
   });
 
   const [snackbar, setSnackbar] = useState({ 
@@ -123,7 +129,8 @@ const UserManagement: React.FC = () => {
     setFormData({
       nome: '',
       email: '',
-      cpf: ''
+      cpf: '',
+      role: 'FUNCIONARIO'
     });
   };
 
@@ -144,10 +151,11 @@ const UserManagement: React.FC = () => {
 
     try {
       // Prepara dados para MVC
-      const userData: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'> = {
+      const userData: CriarUsuarioRequest = {
         nome: formData.nome.trim(),
         email: formData.email.trim(),
-        cpf: formData.cpf.replace(/\D/g, '')
+        cpf: formData.cpf.replace(/\D/g, ''),
+        role: formData.role
       };
 
       await criarUsuario(userData);
@@ -214,6 +222,7 @@ const UserManagement: React.FC = () => {
               <TableCell><strong>Nome</strong></TableCell>
               <TableCell><strong>Email</strong></TableCell>
               <TableCell><strong>CPF</strong></TableCell>
+              <TableCell><strong>Role</strong></TableCell>
               <TableCell><strong>Data Criação</strong></TableCell>
             </TableRow>
           </TableHead>
@@ -223,6 +232,9 @@ const UserManagement: React.FC = () => {
                 <TableCell>{usuario.nome}</TableCell>
                 <TableCell>{usuario.email}</TableCell>
                 <TableCell>{usuario.cpf || '-'}</TableCell>
+                <TableCell>
+                  {usuario.role === 'ADMIN' ? 'Administrador' : usuario.role === 'FUNCIONARIO' ? 'Funcionário' : usuario.role || '-'}
+                </TableCell>
                 <TableCell>
                   {usuario.createdAt ? formatDate(usuario.createdAt) : '-'}
                 </TableCell>
@@ -315,18 +327,33 @@ const UserManagement: React.FC = () => {
                 </Box>
               </Box>
 
-              {/* Linha 2: CPF */}
-              <Box sx={{ flex: 1, minWidth: 280 }}>
-                <TextField
-                  fullWidth
-                  label="CPF"
-                  value={formData.cpf}
-                  onChange={handleCPFChange}
-                  placeholder="000.000.000-00"
-                  required
-                  variant="outlined"
-                  inputProps={{ maxLength: 14 }}
-                />
+              {/* Linha 2: CPF e Role */}
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ flex: 1, minWidth: 280 }}>
+                  <TextField
+                    fullWidth
+                    label="CPF"
+                    value={formData.cpf}
+                    onChange={handleCPFChange}
+                    placeholder="000.000.000-00"
+                    required
+                    variant="outlined"
+                    inputProps={{ maxLength: 14 }}
+                  />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 280 }}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={formData.role}
+                      label="Role"
+                      onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as RoleType }))}
+                    >
+                      <MenuItem value="FUNCIONARIO">Funcionário</MenuItem>
+                      <MenuItem value="ADMIN">Administrador</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
               </Box>
             </Box>
           </DialogContent>

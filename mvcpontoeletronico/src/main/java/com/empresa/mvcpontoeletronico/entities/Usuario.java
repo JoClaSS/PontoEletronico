@@ -46,6 +46,11 @@ public class Usuario {
     @Column(name = "cpf", nullable = false, unique = true)
     private String cpf;
     
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    @Builder.Default
+    private RoleType role = RoleType.FUNCIONARIO;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

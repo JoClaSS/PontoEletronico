@@ -1,5 +1,5 @@
 import { createApiClient } from './apiClient';
-import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos } from '../types';
+import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, CriarUsuarioRequest } from '../types';
 
 const apiMVC = createApiClient('MVC');
 
@@ -49,7 +49,7 @@ export const apiMVCService = {
     return response.data;
   },
 
-  async criarUsuario(usuario: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'>): Promise<Usuario> {
+  async criarUsuario(usuario: CriarUsuarioRequest): Promise<Usuario> {
     const response = await apiMVC.post<Usuario>('/api/usuarios', usuario);
     return response.data;
   },
@@ -125,5 +125,47 @@ export const apiMVCService = {
   async getJornadas(): Promise<any[]> {
     const response = await apiMVC.get<any[]>('/api/jornadas');
     return response.data;
+  },
+
+  // Solicitações
+  async getMotivos(): Promise<any[]> {
+    const response = await apiMVC.get<any[]>('/api/solicitacoes/motivos');
+    return response.data;
+  },
+
+  async getSolicitacoesPorUsuario(usuarioId: string): Promise<any[]> {
+    const response = await apiMVC.get<any[]>(`/api/solicitacoes/usuario/${usuarioId}`);
+    return response.data;
+  },
+
+  async criarSolicitacao(solicitacao: any): Promise<any> {
+    const response = await apiMVC.post<any>('/api/solicitacoes', solicitacao);
+    return response.data;
+  },
+
+  async criarSolicitacaoComAnexo(formData: FormData): Promise<any> {
+    const response = await apiMVC.post<any>('/api/solicitacoes/com-anexo', formData);
+    return response.data;
+  },
+
+  async baixarAnexoSolicitacao(solicitacaoId: string): Promise<Blob> {
+    const response = await apiMVC.get(`/api/solicitacoes/${solicitacaoId}/anexo`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  async resolverSolicitacao(solicitacaoId: string, resolucaoData: any): Promise<any> {
+    const response = await apiMVC.put<any>(`/api/solicitacoes/${solicitacaoId}/resolver`, resolucaoData);
+    return response.data;
+  },
+
+  async excluirSolicitacao(solicitacaoId: string): Promise<void> {
+    await apiMVC.delete(`/api/solicitacoes/${solicitacaoId}`);
+  },
+
+  async getPontosPorData(usuarioId: string, data: string): Promise<PontoEletronico[]> {
+    const response = await apiMVC.get(`/api/pontos/usuario/${usuarioId}?data=${data}`);
+    return response.data.map(mapMVCResponseToFrontend);
   }
 };

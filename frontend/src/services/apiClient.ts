@@ -17,15 +17,25 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
   // Interceptor para adicionar token JWT automaticamente
   client.interceptors.request.use(
     (config) => {
+      // Debug da autenticação
+      console.log(`[${backendType}] Keycloak inicializado:`, keycloakService.isInitialized());
+      console.log(`[${backendType}] Usuário autenticado:`, keycloakService.isAuthenticated());
+      
       // Adicionar token de autenticação se disponível
       if (keycloakService.isInitialized() && keycloakService.isAuthenticated()) {
         const token = keycloakService.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log(`[${backendType}] Token JWT enviado:`, token.substring(0, 50) + '...');
+        } else {
+          console.warn(`[${backendType}] Token não disponível!`);
         }
+      } else {
+        console.warn(`[${backendType}] Keycloak não inicializado ou usuário não autenticado!`);
       }
 
       console.log(`[${backendType}] ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`[${backendType}] Headers:`, config.headers);
       console.log(`[${backendType}] Request data:`, config.data);
       return config;
     },

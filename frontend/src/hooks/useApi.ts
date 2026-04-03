@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { apiService } from '../services/apiService';
-import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, ApiState } from '../types';
+import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, ApiState, CriarUsuarioRequest } from '../types';
 
 export const useApi = () => {
   const { setLoading } = useAppContext();
@@ -33,7 +33,7 @@ export const useApi = () => {
       }
     };
 
-    const criarUsuario = async (usuario: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'>): Promise<Usuario | null> => {
+    const criarUsuario = async (usuario: CriarUsuarioRequest): Promise<Usuario | null> => {
       setState(prev => ({ ...prev, loading: true, error: null }));
       setLoading(true);
       
