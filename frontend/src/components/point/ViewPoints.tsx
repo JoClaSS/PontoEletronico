@@ -32,6 +32,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-f
 import { ptBR } from 'date-fns/locale';
 import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
+import { useKeycloak } from '../../contexts/KeycloakContext';
 import type { FiltrosPontos, PontoAgrupado } from '../../types';
 
 interface TabPanelProps {
@@ -63,6 +64,7 @@ function TabPanel(props: TabPanelProps) {
 const ViewPoints: React.FC = () => {
   const { selectedUser, setSelectedUser, usuarios, setUsuarios } = useAppContext();
   const { useUsuarios, usePontos, useRelatorios } = useApi();
+  const { userProfile, isAdmin, isMaster } = useKeycloak();
   const usuariosHook = useUsuarios();
   const pontosHook = usePontos(selectedUser?.id);
   const relatoriosHook = useRelatorios();
@@ -78,7 +80,15 @@ const ViewPoints: React.FC = () => {
     if (usuarios.length === 0) {
       usuariosHook.loadUsuarios();
     }
-  }, []);
+    
+    // Se for funcionário, encontra seu próprio usuário e seleciona automaticamente
+    if (!isAdmin() && !isMaster() && userProfile && usuarios.length > 0) {
+      const usuarioLogado = usuarios.find(u => u.email === userProfile.email);
+      if (usuarioLogado && !selectedUser) {
+        setSelectedUser(usuarioLogado);
+      }
+    }
+  }, [usuarios.length, userProfile, isAdmin, isMaster]);
 
   // Atualiza lista de usuários no contexto quando carregados
   useEffect(() => {
@@ -220,25 +230,40 @@ const ViewPoints: React.FC = () => {
       {/* Seleção de Usuário */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <FormControl fullWidth>
-            <InputLabel id="user-select-label">
-              <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Selecione o Usuário
-            </InputLabel>
-            <Select
-              labelId="user-select-label"
-              value={selectedUser?.id || ''}
-              onChange={handleUserChange}
-              label="Selecione o Usuário"
-              disabled={usuariosHook.loading}
-            >
-              {usuarios.map((user) => (
-                <MenuItem key={user.id} value={user.id}>
-                  {user.nome} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {(isAdmin() || isMaster()) ? (
+            <FormControl fullWidth>
+              <InputLabel id="user-select-label">
+                <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Selecione o Usuário
+              </InputLabel>
+              <Select
+                labelId="user-select-label"
+                value={selectedUser?.id || ''}
+                onChange={handleUserChange}
+                label="Selecione o Usuário"
+                disabled={usuariosHook.loading}
+              >
+                {usuarios.map((user) => (
+                  <MenuItem key={user.id} value={user.id}>
+                    {user.nome} ({user.email})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            // Para funcionários, mostra apenas informação read-only
+            <Box sx={{ display: 'flex', alignItems: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <PersonIcon sx={{ mr: 2, color: 'primary.main' }} />
+              <Box>
+                <Typography variant="h6" color="primary.main">
+                  {userProfile?.firstName || userProfile?.username || 'Usuário'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {userProfile?.email}
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </CardContent>
       </Card>
 

@@ -48,12 +48,14 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
+import { useKeycloak } from '../../contexts/KeycloakContext';
 import { StatusSolicitacao } from '../../types';
 import type { Solicitacao, MotivoSolicitacao, CriarSolicitacaoRequest } from '../../types';
 
 const Solicitacoes: React.FC = () => {
   const { selectedUser, setSelectedUser, usuarios, setUsuarios } = useAppContext();
   const { useUsuarios } = useApi();
+  const { userProfile, isAdmin, isMaster } = useKeycloak();
   const usuariosHook = useUsuarios();
 
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
@@ -98,7 +100,15 @@ const Solicitacoes: React.FC = () => {
       usuariosHook.loadUsuarios();
     }
     carregarMotivos();
-  }, []);
+    
+    // Se for funcionário, encontra seu próprio usuário e seleciona automaticamente
+    if (!isAdmin() && !isMaster() && userProfile && usuarios.length > 0) {
+      const usuarioLogado = usuarios.find(u => u.email === userProfile.email);
+      if (usuarioLogado && !selectedUser) {
+        setSelectedUser(usuarioLogado);
+      }
+    }
+  }, [usuarios.length, userProfile, isAdmin, isMaster]);
 
   // Atualiza lista de usuários no contexto quando carregados
   useEffect(() => {
@@ -395,6 +405,28 @@ const Solicitacoes: React.FC = () => {
   const handleCancelarSolicitacao = async () => {
     if (!solicitacaoSelecionada) return;
     
+    // Verifica se a solicitação já foi resolvida
+    if (solicitacaoSelecionada.status === StatusSolicitacao.RESOLVIDO) {
+      setSnackbar({
+        open: true,
+        message: 'Não é possível cancelar uma solicitação que já foi resolvida',
+        severity: 'error'
+      });
+      setModalConfirmacao(false);
+      return;
+    }
+    
+    // Verifica se a solicitação já foi cancelada
+    if (solicitacaoSelecionada.status === StatusSolicitacao.CANCELADO) {
+      setSnackbar({
+        open: true,
+        message: 'Esta solicitação já foi cancelada',
+        severity: 'error'
+      });
+      setModalConfirmacao(false);
+      return;
+    }
+    
     try {
       const { apiMVCService } = await import('../../services/apiMVC');
       await apiMVCService.excluirSolicitacao(solicitacaoSelecionada.id);
@@ -489,56 +521,47 @@ const Solicitacoes: React.FC = () => {
   return (
     <Box>
       {/* Título */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h4" component="h1" sx={{ color: 'black' }}>
-          Solicitações
-        </Typography>
-        {/* Debug Button - Remover depois 
-        <Button 
-          variant="outlined" 
-          color="secondary" 
-          size="small"
-          onClick={async () => {
-            const { default: keycloakService } = await import('../../services/keycloakService');
-            console.log('=== DEBUG COMPLETO ===');
-            console.log('Keycloak Debug Info:', keycloakService.getDebugInfo());
-            
-            // Teste simples de API
-            try {
-              const { apiMVCService } = await import('../../services/apiMVC');
-              await apiMVCService.getMotivos();
-              console.log('✅ API Request funcionou!');
-            } catch (error) {
-              console.error('❌ API Request falhou:', error);
-            }
-          }}
-        >
-          Debug Auth
-        </Button> */}
-      </Box>
+      <Typography variant="h4" component="h1" sx={{ color: 'black', mb: 2 }}>
+        Solicitações
+      </Typography>
 
       {/* Seleção de Usuário */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <FormControl fullWidth>
-            <InputLabel id="user-select-label">
-              <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Selecione o Usuário
-            </InputLabel>
-            <Select
-              labelId="user-select-label"
-              value={selectedUser?.id || ''}
-              onChange={handleUserChange}
-              label="Selecione o Usuário"
-              disabled={usuariosHook.loading}
-            >
-              {usuarios.map((user) => (
-                <MenuItem key={user.id} value={user.id}>
-                  {user.nome} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {(isAdmin() || isMaster()) ? (
+            <FormControl fullWidth>
+              <InputLabel id="user-select-label">
+                <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Selecione o Usuário
+              </InputLabel>
+              <Select
+                labelId="user-select-label"
+                value={selectedUser?.id || ''}
+                onChange={handleUserChange}
+                label="Selecione o Usuário"
+                disabled={usuariosHook.loading}
+              >
+                {usuarios.map((user) => (
+                  <MenuItem key={user.id} value={user.id}>
+                    {user.nome} ({user.email})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            // Para funcionários, mostra apenas informação read-only
+            <Box sx={{ display: 'flex', alignItems: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <PersonIcon sx={{ mr: 2, color: 'primary.main' }} />
+              <Box>
+                <Typography variant="h6" color="primary.main">
+                  {userProfile?.firstName || userProfile?.username || 'Usuário'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {userProfile?.email}
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </CardContent>
       </Card>
 
@@ -691,7 +714,7 @@ const Solicitacoes: React.FC = () => {
           </ListItemIcon>
           <ListItemText>Visualizar</ListItemText>
         </MenuItem>
-        {solicitacaoSelecionada?.status === StatusSolicitacao.ABERTO && (
+        {(isAdmin() || isMaster()) && solicitacaoSelecionada?.status === StatusSolicitacao.ABERTO && (
           <MenuItem onClick={handleAbrirResolucao}>
             <ListItemIcon>
               <CheckIcon fontSize="small" />
@@ -699,12 +722,14 @@ const Solicitacoes: React.FC = () => {
             <ListItemText>Resolver</ListItemText>
           </MenuItem>
         )}
-        <MenuItem onClick={handleAbrirConfirmacao}>
-          <ListItemIcon>
-            <CancelIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Cancelar</ListItemText>
-        </MenuItem>
+        {(isAdmin() || isMaster()) && (
+          <MenuItem onClick={handleAbrirConfirmacao}>
+            <ListItemIcon>
+              <CancelIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Cancelar</ListItemText>
+          </MenuItem>
+        )}
       </Menu>
 
       {/* Modal de Visualização */}

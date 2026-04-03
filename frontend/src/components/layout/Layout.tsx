@@ -93,21 +93,23 @@ const Layout: React.FC = () => {
               <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Frequência</Box>
             </Button>
 
-            {/* Botão Usuários - só para admins ou users com permissão */}
-            <Button
-              color="inherit"
-              startIcon={<PersonAddIcon />}
-              onClick={() => handleNavigation('/usuarios')}
-              variant={isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'outlined' : 'text'}
-              sx={{
-                backgroundColor: isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'rgba(255,255,255,0.1)' : 'transparent',
-                fontSize: { xs: '12px', sm: '14px', md: '16px' },
-                minWidth: { xs: 'auto', sm: '64px' },
-                px: { xs: 1, sm: 2 }
-              }}
-            >
-              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Usuários</Box>
-            </Button>
+            {/* Botão Usuários - só para ADMIN e MASTER */}
+            {(isAdmin() || isMaster()) && (
+              <Button
+                color="inherit"
+                startIcon={<PersonAddIcon />}
+                onClick={() => handleNavigation('/usuarios')}
+                variant={isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'outlined' : 'text'}
+                sx={{
+                  backgroundColor: isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  fontSize: { xs: '12px', sm: '14px', md: '16px' },
+                  minWidth: { xs: 'auto', sm: '64px' },
+                  px: { xs: 1, sm: 2 }
+                }}
+              >
+                <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Usuários</Box>
+              </Button>
+            )}
 
             {/* Botão Solicitações */}
             <Button
