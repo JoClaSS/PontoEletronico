@@ -122,11 +122,9 @@ const Solicitacoes: React.FC = () => {
 
   const carregarMotivos = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/solicitacoes/motivos');
-      if (response.ok) {
-        const data = await response.json();
-        setMotivos(data);
-      }
+      const { apiMVCService } = await import('../../services/apiMVC');
+      const data = await apiMVCService.getMotivos();
+      setMotivos(data);
     } catch (error) {
       console.error('Erro ao carregar motivos:', error);
     }
@@ -137,11 +135,9 @@ const Solicitacoes: React.FC = () => {
     
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8081/api/solicitacoes/usuario/${selectedUser.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSolicitacoes(data);
-      }
+      const { apiMVCService } = await import('../../services/apiMVC');
+      const data = await apiMVCService.getSolicitacoesPorUsuario(selectedUser.id);
+      setSolicitacoes(data);
     } catch (error) {
       console.error('Erro ao carregar solicitações:', error);
       setSnackbar({
@@ -205,7 +201,12 @@ const Solicitacoes: React.FC = () => {
       // Formato da data para envio
       const dataFormatada = format(dataReferencia, 'yyyy-MM-dd');
       
-      let response;
+      // Debug da autenticação
+      const { default: keycloakService } = await import('../../services/keycloakService');
+      console.log('=== DEBUG AUTENTICAÇÃO ===');
+      console.log('Status Keycloak:', keycloakService.getDebugInfo());
+      
+      const { apiMVCService } = await import('../../services/apiMVC');
       
       // Se o motivo requer anexo ou se um anexo foi fornecido, usa a API de multipart
       if (motivoSelecionado?.requerAnexo || arquivoSelecionado) {        
@@ -219,37 +220,23 @@ const Solicitacoes: React.FC = () => {
           formData.append('anexo', arquivoSelecionado);
         }
         
-        response = await fetch('http://localhost:8081/api/solicitacoes/com-anexo', {
-          method: 'POST',
-          body: formData,
-        });
+        await apiMVCService.criarSolicitacaoComAnexo(formData);
       } else {
         // Usa a API JSON normal
-        response = await fetch('http://localhost:8081/api/solicitacoes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...novasSolicitacao,
-            dataReferencia: dataFormatada,
-            descricao: novasSolicitacao.descricao.trim()
-          }),
+        await apiMVCService.criarSolicitacao({
+          ...novasSolicitacao,
+          dataReferencia: dataFormatada,
+          descricao: novasSolicitacao.descricao.trim()
         });
       }
 
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: 'Solicitação criada com sucesso!',
-          severity: 'success'
-        });
-        handleFecharDialog();
-        carregarSolicitacoes();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro ao criar solicitação');
-      }
+      setSnackbar({
+        open: true,
+        message: 'Solicitação criada com sucesso!',
+        severity: 'success'
+      });
+      handleFecharDialog();
+      carregarSolicitacoes();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -276,21 +263,17 @@ const Solicitacoes: React.FC = () => {
 
   const handleDownloadAnexo = async (solicitacaoId: string, nomeArquivo: string) => {
     try {
-      const response = await fetch(`http://localhost:8081/api/solicitacoes/${solicitacaoId}/anexo`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = nomeArquivo;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } else {
-        throw new Error('Erro ao baixar anexo');
-      }
+      const { apiMVCService } = await import('../../services/apiMVC');
+      const blob = await apiMVCService.baixarAnexoSolicitacao(solicitacaoId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = nomeArquivo;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Erro ao baixar anexo:', error);
       setSnackbar({
@@ -318,50 +301,41 @@ const Solicitacoes: React.FC = () => {
     if (!solicitacaoSelecionada) return;
     
     try {
+      const { apiMVCService } = await import('../../services/apiMVC');
       // Busca os pontos da data referente
-      const response = await fetch(`http://localhost:8081/api/pontos/usuario/${solicitacaoSelecionada.usuarioId}?data=${solicitacaoSelecionada.dataReferencia}`);
+      const pontos = await apiMVCService.getPontosPorData(solicitacaoSelecionada.usuarioId, solicitacaoSelecionada.dataReferencia);
       
-      if (response.ok) {
-        const pontos = await response.json();
+      if (pontos && pontos.length > 0) {
+        // Se há pontos, preenche os campos
+        const pontosOrdenados = pontos.sort((a: { dataHora: string | number | Date; }, b: { dataHora: string | number | Date; }) => 
+          new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime()
+        ).map((ponto: { dataHora: string | number | Date; }) => ({
+          ...ponto,
+          horario: format(new Date(ponto.dataHora), 'HH:mm')
+        }));
         
-        if (pontos && pontos.length > 0) {
-          // Se há pontos, preenche os campos
-          const pontosOrdenados = pontos.sort((a: { dataHora: string | number | Date; }, b: { dataHora: string | number | Date; }) => 
-            new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime()
-          ).map((ponto: { dataHora: string | number | Date; }) => ({
-            ...ponto,
-            horario: format(new Date(ponto.dataHora), 'HH:mm')
-          }));
-          
-          setPontosReferencia({
-            entrada1: pontosOrdenados[0]?.horario || '',
-            saida1: pontosOrdenados[1]?.horario || '',
-            entrada2: pontosOrdenados[2]?.horario || '',
-            saida2: pontosOrdenados[3]?.horario || '',
-            entrada3: pontosOrdenados[4]?.horario || '',
-            saida3: pontosOrdenados[5]?.horario || ''
-          });
-        } else {
-          // Se não há pontos, deixa os campos vazios para serem preenchidos
-          setPontosReferencia({
-            entrada1: '',
-            saida1: '',
-            entrada2: '',
-            saida2: '',
-            entrada3: '',
-            saida3: ''
-          });
-        }
-        
-        setObservacaoResolucao('');
-        setModalResolucao(true);
+        setPontosReferencia({
+          entrada1: pontosOrdenados[0]?.horario || '',
+          saida1: pontosOrdenados[1]?.horario || '',
+          entrada2: pontosOrdenados[2]?.horario || '',
+          saida2: pontosOrdenados[3]?.horario || '',
+          entrada3: pontosOrdenados[4]?.horario || '',
+          saida3: pontosOrdenados[5]?.horario || ''
+        });
       } else {
-        setSnackbar({
-          open: true,
-          message: 'Erro ao carregar pontos da data referente',
-          severity: 'error'
+        // Se não há pontos, deixa os campos vazios para serem preenchidos
+        setPontosReferencia({
+          entrada1: '',
+          saida1: '',
+          entrada2: '',
+          saida2: '',
+          entrada3: '',
+          saida3: ''
         });
       }
+      
+      setObservacaoResolucao('');
+      setModalResolucao(true);
     } catch (error) {
       console.error('Erro ao carregar pontos:', error);
       setSnackbar({
@@ -388,32 +362,22 @@ const Solicitacoes: React.FC = () => {
     }
     
     try {
+      const { apiMVCService } = await import('../../services/apiMVC');
       // Inclui os pontos editados e observação na requisição
-      const response = await fetch(`http://localhost:8081/api/solicitacoes/${solicitacaoSelecionada.id}/resolver`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pontos: pontosReferencia,
-          observacao: observacaoResolucao.trim(),
-          dataReferencia: solicitacaoSelecionada.dataReferencia
-        })
+      await apiMVCService.resolverSolicitacao(solicitacaoSelecionada.id, {
+        pontos: pontosReferencia,
+        observacao: observacaoResolucao.trim(),
+        dataReferencia: solicitacaoSelecionada.dataReferencia
       });
 
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: 'Solicitação resolvida com sucesso!',
-          severity: 'success'
-        });
-        setModalResolucao(false);
-        handleLimparSelecao();
-        carregarSolicitacoes();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro ao resolver solicitação');
-      }
+      setSnackbar({
+        open: true,
+        message: 'Solicitação resolvida com sucesso!',
+        severity: 'success'
+      });
+      setModalResolucao(false);
+      handleLimparSelecao();
+      carregarSolicitacoes();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -432,23 +396,17 @@ const Solicitacoes: React.FC = () => {
     if (!solicitacaoSelecionada) return;
     
     try {
-      const response = await fetch(`http://localhost:8081/api/solicitacoes/${solicitacaoSelecionada.id}`, {
-        method: 'DELETE',
-      });
+      const { apiMVCService } = await import('../../services/apiMVC');
+      await apiMVCService.excluirSolicitacao(solicitacaoSelecionada.id);
 
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: 'Solicitação cancelada com sucesso!',
-          severity: 'success'
-        });
-        setModalConfirmacao(false);
-        handleLimparSelecao();
-        carregarSolicitacoes();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro ao cancelar solicitação');
-      }
+      setSnackbar({
+        open: true,
+        message: 'Solicitação cancelada com sucesso!',
+        severity: 'success'
+      });
+      setModalConfirmacao(false);
+      handleLimparSelecao();
+      carregarSolicitacoes();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -531,9 +489,33 @@ const Solicitacoes: React.FC = () => {
   return (
     <Box>
       {/* Título */}
-      <Typography variant="h4" component="h1" gutterBottom sx={{ color: 'black' }}>
-        Solicitações
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ color: 'black' }}>
+          Solicitações
+        </Typography>
+        {/* Debug Button - Remover depois 
+        <Button 
+          variant="outlined" 
+          color="secondary" 
+          size="small"
+          onClick={async () => {
+            const { default: keycloakService } = await import('../../services/keycloakService');
+            console.log('=== DEBUG COMPLETO ===');
+            console.log('Keycloak Debug Info:', keycloakService.getDebugInfo());
+            
+            // Teste simples de API
+            try {
+              const { apiMVCService } = await import('../../services/apiMVC');
+              await apiMVCService.getMotivos();
+              console.log('✅ API Request funcionou!');
+            } catch (error) {
+              console.error('❌ API Request falhou:', error);
+            }
+          }}
+        >
+          Debug Auth
+        </Button> */}
+      </Box>
 
       {/* Seleção de Usuário */}
       <Card sx={{ mb: 3 }}>
