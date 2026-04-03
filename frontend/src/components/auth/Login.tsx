@@ -1,211 +1,128 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
-  TextField,
   Button,
   Container,
-  InputAdornment,
-  Alert,
   Divider
 } from '@mui/material';
 import {
-  Person as PersonIcon,
-  Lock as LockIcon,
-  Login as LoginIcon
+  Login as LoginIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material';
-import { useAppContext } from '../../contexts/AppContext';
+import { useKeycloak } from '../../contexts/KeycloakContext';
 
 const Login: React.FC = () => {
-  const { handleLogin } = useAppContext();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { login } = useKeycloak();
 
-  const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: event.target.value
-    }));
-    // Limpa erro quando o usuário começa a digitar
-    if (error) setError(null);
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    
-    // Validações básicas
-    if (!formData.email.trim()) {
-      setError('E-mail é obrigatório');
-      return;
-    }
-    
-    if (!formData.password.trim()) {
-      setError('Senha é obrigatória');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Simula uma chamada de API (por enquanto sempre permite login)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Por enquanto, qualquer e-mail/senha é aceito
-      handleLogin({
-        id: '1',
-        nome: 'Usuário Logado',
-        email: formData.email
-      });
-      
-    } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = () => {
-    setFormData({
-      email: 'admin@pontoeletronico.com',
-      password: '123456'
-    });
+  const handleLogin = () => {
+    login();
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        backgroundColor: '#1e3a8a',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2
-      }}
-    >
-      <Container maxWidth="sm">
-        <Card
-          elevation={12}
-          sx={{
+    <Container maxWidth="sm">
+      <Box
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        minHeight="100vh"
+        gap={3}
+      >
+        <Card 
+          elevation={8}
+          sx={{ 
+            width: '100%', 
             borderRadius: 3,
-            overflow: 'hidden'
+            overflow: 'visible'
           }}
         >
-          {/* Cabeçalho */}
-          <Box
-            sx={{
-              backgroundColor: '#1e40af',
-              color: 'white',
-              p: 4,
-              textAlign: 'center'
-            }}
-          >
-            <Typography variant="h4" component="h1" gutterBottom>
-              Ponto Eletrônico
-            </Typography>
-            <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
-              Sistema de Controle de Ponto
-            </Typography>
-          </Box>
-
-          {/* Formulário */}
           <CardContent sx={{ p: 4 }}>
-            <form onSubmit={handleSubmit}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                
-                {error && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
-                  </Alert>
-                )}
+            {/* Header */}
+            <Box textAlign="center" mb={4}>
+              <SecurityIcon 
+                sx={{ 
+                  fontSize: 64, 
+                  color: 'primary.main',
+                  mb: 2
+                }} 
+              />
+              <Typography 
+                variant="h4" 
+                component="h1" 
+                fontWeight="bold"
+                color="primary"
+                gutterBottom
+              >
+                Ponto Eletrônico
+              </Typography>
+              <Typography 
+                variant="subtitle1" 
+                color="text.secondary"
+                sx={{ mb: 2 }}
+              >
+                Sistema de Controle de Ponto
+              </Typography>
+              
+              <Divider sx={{ my: 3 }} />
+            </Box>
 
-                <TextField
-                  label="E-mail"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange('email')}
-                  fullWidth
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon color="action" />
-                      </InputAdornment>
-                    )
-                  }}
-                />
+            {/* Login Info */}
+            <Box textAlign="center" mb={4}>
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                color="text.primary"
+              >
+                Autenticação Segura
+              </Typography>
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ mb: 3 }}
+              >
+                Entre com suas credenciais para acessar o sistema
+              </Typography>
+            </Box>
 
-                <TextField
-                  label="Senha"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange('password')}
-                  fullWidth
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon color="action" />
-                      </InputAdornment>
-                    )
-                  }}
-                />
+            {/* Login Button */}
+            <Button
+              onClick={handleLogin}
+              variant="contained"
+              size="large"
+              startIcon={<LoginIcon />}
+              fullWidth
+              sx={{
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                borderRadius: 2,
+                textTransform: 'none',
+                boxShadow: 3,
+                '&:hover': {
+                  boxShadow: 6,
+                }
+              }}
+            >
+              Entrar no Sistema
+            </Button>
 
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                  disabled={loading}
-                  startIcon={<LoginIcon />}
-                  sx={{
-                    mt: 2,
-                    py: 1.5,
-                    fontSize: '1.1rem'
-                  }}
-                >
-                  {loading ? 'Entrando...' : 'Entrar'}
-                </Button>
-
-                <Divider sx={{ my: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Para demonstração
-                  </Typography>
-                </Divider>
-
-                <Button
-                  variant="outlined"
-                  onClick={handleDemoLogin}
-                  disabled={loading}
-                  sx={{
-                    textTransform: 'none'
-                  }}
-                >
-                  Preencher dados de exemplo
-                </Button>
-
-              </Box>
-            </form>
+            {/* Footer */}
+            <Box textAlign="center" mt={4}>
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+                display="block"
+              >
+                Sistema protegido por autenticação Keycloak
+              </Typography>
+            </Box>
           </CardContent>
         </Card>
-
-        {/* Informações do Sistema */}
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-            Sistema de gerenciamento de ponto eletrônico
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', display: 'block', mt: 1 }}>
-            Versão 1.0 - © 2026
-          </Typography>
-        </Box>
-      </Container>
-    </Box>
+      </Box>
+    </Container>
   );
 };
 

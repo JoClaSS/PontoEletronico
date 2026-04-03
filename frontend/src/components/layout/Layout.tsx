@@ -6,22 +6,23 @@ import {
   Typography,
   Button,
   Box,
-  CircularProgress,
-  Container
+  Container,
+  Chip
 } from '@mui/material';
 import {
   Home as HomeIcon,
   Schedule as ScheduleIcon,
   PersonAdd as PersonAddIcon,
   Assignment as AssignmentIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  AdminPanelSettings as AdminIcon
 } from '@mui/icons-material';
-import { useAppContext } from '../../contexts/AppContext';
+import { useKeycloak } from '../../contexts/KeycloakContext';
 
 const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loading, loggedUser, handleLogout } = useAppContext();
+  const { userProfile, logout, isAdmin, isMaster } = useKeycloak();
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -92,7 +93,7 @@ const Layout: React.FC = () => {
               <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Frequência</Box>
             </Button>
 
-            {/* Botão Usuários */}
+            {/* Botão Usuários - só para admins ou users com permissão */}
             <Button
               color="inherit"
               startIcon={<PersonAddIcon />}
@@ -124,32 +125,40 @@ const Layout: React.FC = () => {
               <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Solicitações</Box>
             </Button>
 
-            {/* Indicador de Loading */}
-            {loading && (
-              <CircularProgress 
-                size={24} 
-                sx={{ color: 'white' }} 
-              />
-            )}
-
-            {/* Usuário Logado e Logout */}
-            {loggedUser && (
-              <>
+            {/* Usuário Logado e Status de Admin */}
+            {userProfile && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+                {/* Nome do usuário */}
                 <Typography 
                   variant="body2" 
                   sx={{ 
-                    mx: 2, 
                     display: { xs: 'none', md: 'block' },
                     color: 'rgba(255, 255, 255, 0.9)'
                   }}
                 >
-                  Olá, {loggedUser.nome.split(' ')[0]}
+                  Olá, {userProfile.firstName || userProfile.username}
                 </Typography>
                 
+                {/* Badge de Admin/Master */}
+                {(isAdmin() || isMaster()) && (
+                  <Chip
+                    icon={<AdminIcon />}
+                    label={isMaster() ? "Master" : "Admin"}
+                    size="small"
+                    sx={{
+                      backgroundColor: isMaster() ? 'rgba(156, 39, 176, 0.2)' : 'rgba(255, 193, 7, 0.2)',
+                      color: isMaster() ? '#9c27b0' : '#ffc107',
+                      border: `1px solid ${isMaster() ? 'rgba(156, 39, 176, 0.3)' : 'rgba(255, 193, 7, 0.3)'}`,
+                      display: { xs: 'none', sm: 'flex' }
+                    }}
+                  />
+                )}
+                
+                {/* Botão de Logout */}
                 <Button
                   color="inherit"
                   startIcon={<LogoutIcon />}
-                  onClick={handleLogout}
+                  onClick={logout}
                   variant="outlined"
                   size="small"
                   sx={{
@@ -165,7 +174,7 @@ const Layout: React.FC = () => {
                 >
                   <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Sair</Box>
                 </Button>
-              </>
+              </Box>
             )}
           </Box>
         </Toolbar>

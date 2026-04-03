@@ -1,0 +1,100 @@
+{
+  "realm": "MundialCiclo",
+  "enabled": true,
+  "displayName": "Mundial Ciclo - Ponto Eletrônico",
+  "loginWithEmailAllowed": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "clients": [
+    {
+      "clientId": "ponto-frontend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "FUNCIONARIO",
+        "description": "Role base de funcionário"
+      },
+      {
+        "name": "ADMIN", 
+        "description": "Role administrativa",
+        "composite": true,
+        "composites": {
+          "realm": ["FUNCIONARIO"]
+        }
+      },
+      {
+        "name": "MASTER",
+        "description": "Role master com acesso total",
+        "composite": true,
+        "composites": {
+          "realm": ["ADMIN"]
+        }
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@mundialciclo.com",
+      "firstName": "Administrador",
+      "lastName": "Sistema",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ADMIN"]
+    },
+    {
+      "username": "funcionario",
+      "email": "funcionario@mundialciclo.com", 
+      "firstName": "José",
+      "lastName": "Silva",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "func123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["FUNCIONARIO"]
+    },
+    {
+      "username": "master",
+      "email": "master@mundialciclo.com",
+      "firstName": "Master",
+      "lastName": "User", 
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "master123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["MASTER"]
+    }
+  ]
+}

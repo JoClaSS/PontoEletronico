@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { BACKEND_CONFIGS } from '../types';
+import keycloakService from './keycloakService';
 
 // Função para criar instância do axios para um backend específico
 export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
@@ -13,9 +14,17 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
     },
   });
 
-  // Interceptor para logs (desenvolvimento)
+  // Interceptor para adicionar token JWT automaticamente
   client.interceptors.request.use(
     (config) => {
+      // Adicionar token de autenticação se disponível
+      if (keycloakService.isInitialized() && keycloakService.isAuthenticated()) {
+        const token = keycloakService.getToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+
       console.log(`[${backendType}] ${config.method?.toUpperCase()} ${config.url}`);
       console.log(`[${backendType}] Request data:`, config.data);
       return config;
@@ -35,6 +44,14 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
       console.error(`[${backendType}] Response error:`, error.response?.status, error.message);
       console.error(`[${backendType}] Response data:`, error.response?.data);
       console.error(`[${backendType}] URL:`, error.config?.url);
+      
+      // Verifica se é um erro de autenticação
+      if (error.response?.status === 401) {
+        console.error(`[${backendType}] Token inválido ou expirado - redirecionando para login`);
+        if (keycloakService.isInitialized()) {
+          keycloakService.logout();
+        }
+      }
       
       // Verifica se é um erro de conexão
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {

@@ -58,7 +58,7 @@ export const useApi = () => {
   };
 
   // Hook para operações de ponto
-  const usePontos = (usuarioId?: string) => {
+  const usePontos = (_usuarioId?: string) => {
     const [state, setState] = useState<ApiState<PontoEletronico[]>>({
       data: null,
       loading: false,
