@@ -32,12 +32,22 @@ export interface UserProfile {
 // Serviço de autenticação
 class KeycloakService {
   private initialized = false;
+  private initPromise: Promise<boolean> | null = null;
 
   async init(): Promise<boolean> {
+    // Se já está inicializando ou já inicializou, retorna o resultado
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+    
+    if (this.initialized) {
+      return keycloak.authenticated || false;
+    }
+
     try {
-      const authenticated = await keycloak.init(initOptions);
+      this.initPromise = keycloak.init(initOptions);
+      const authenticated = await this.initPromise;
       this.initialized = true;
-      
       // Configurar refresh automático do token
       if (authenticated) {
         this.setupTokenRefresh();
@@ -46,6 +56,7 @@ class KeycloakService {
       return authenticated;
     } catch (error) {
       console.error('Erro ao inicializar Keycloak:', error);
+      this.initPromise = null; // Reset promise em caso de erro
       return false;
     }
   }
@@ -72,14 +83,115 @@ class KeycloakService {
     return keycloak.login();
   }
 
+  // Login direto com usuário/senha (Resource Owner Password Credentials)
+  async loginDirect(username: string, password: string): Promise<boolean> {
+    try {
+      const response = await fetch(`/keycloak/realms/${keycloakConfig.realm}/protocol/openid-connect/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'password',
+          client_id: keycloakConfig.clientId,
+          username: username,
+          password: password,
+          scope: 'openid profile email'
+        })
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const tokenData = await response.json();
+      
+      console.log('Token data recebido:', {
+        access_token_length: tokenData.access_token?.length,
+        expires_in: tokenData.expires_in,
+        token_type: tokenData.token_type
+      });
+      
+      // Definir tokens no keycloak
+      keycloak.token = tokenData.access_token;
+      keycloak.refreshToken = tokenData.refresh_token;
+      keycloak.idToken = tokenData.id_token;
+      
+      // Parse do token para obter informações do usuário
+      keycloak.tokenParsed = this.parseJwt(tokenData.access_token);
+      keycloak.refreshTokenParsed = tokenData.refresh_token ? this.parseJwt(tokenData.refresh_token) : null;
+      keycloak.idTokenParsed = tokenData.id_token ? this.parseJwt(tokenData.id_token) : null;
+
+      // Definir o status de autenticação
+      (keycloak as any).authenticated = true;
+      (keycloak as any).loginRequired = false;
+
+      // Configurar refresh automático
+      this.setupTokenRefresh();
+      
+      return true;
+    } catch (error) {
+      console.error('Erro no login direto:', error);
+      return false;
+    }
+  }
+
+  // Função auxiliar para fazer parse do JWT
+  private parseJwt(token: string): any {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const parsed = JSON.parse(jsonPayload);
+      
+      return parsed;
+    } catch (error) {
+      console.error('Erro ao fazer parse do JWT:', error);
+      return null;
+    }
+  }
+
   logout(): void {
-    keycloak.logout({
-      redirectUri: window.location.origin
-    });
+    console.log('Fazendo logout...');
+    
+    // Limpar tokens e status
+    keycloak.token = undefined;
+    keycloak.refreshToken = undefined;
+    keycloak.idToken = undefined;
+    keycloak.tokenParsed = undefined;
+    keycloak.refreshTokenParsed = undefined;
+    keycloak.idTokenParsed = undefined;
+    (keycloak as any).authenticated = false;
+    (keycloak as any).loginRequired = true;
+    
+    console.log('Logout completo, tokens limpos');
+    
+    // Redirecionar para a página de login do Keycloak se necessário
+    // keycloak.logout({ redirectUri: window.location.origin });
+  }
+
+  // Abrir página de reset de senha do Keycloak
+  openResetPassword(): void {
+    const resetUrl = `/keycloak/realms/${keycloakConfig.realm}/protocol/openid-connect/auth?client_id=${keycloakConfig.clientId}&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid&kc_action=UPDATE_PASSWORD`;
+    
+    // Abre em nova janela popup
+    window.open(resetUrl, 'resetPassword', 'width=800,height=600,scrollbars=yes,resizable=yes');
   }
 
   isAuthenticated(): boolean {
-    return !!keycloak.token && !keycloak.isTokenExpired();
+    const hasTokens = !!keycloak.token;
+    const keycloakAuth = (keycloak as any).authenticated;
+    let tokenExpired = true;
+    
+    if (keycloak.token && keycloak.tokenParsed) {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const tokenExp = keycloak.tokenParsed.exp;
+      tokenExpired = tokenExp < currentTime;
+    }
+    
+    return keycloakAuth && hasTokens && !tokenExpired;
   }
 
   getToken(): string | undefined {
@@ -134,8 +246,9 @@ class KeycloakService {
     return {
       initialized: this.initialized,
       authenticated: this.isAuthenticated(),
+      keycloakAuthenticated: (keycloak as any).authenticated,
       hasToken: !!keycloak.token,
-      tokenExpired: keycloak.isTokenExpired(),
+      tokenExpired: keycloak.token ? keycloak.isTokenExpired() : 'no token',
       userProfile: this.getUserProfile(),
       tokenPreview: keycloak.token ? keycloak.token.substring(0, 50) + '...' : null
     };

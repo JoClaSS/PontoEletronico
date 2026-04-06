@@ -18,20 +18,19 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
   client.interceptors.request.use(
     (config) => {
       // Debug da autenticação
-      console.log(`[${backendType}] Keycloak inicializado:`, keycloakService.isInitialized());
       console.log(`[${backendType}] Usuário autenticado:`, keycloakService.isAuthenticated());
       
       // Adicionar token de autenticação se disponível
-      if (keycloakService.isInitialized() && keycloakService.isAuthenticated()) {
+      if (keycloakService.isAuthenticated()) {
         const token = keycloakService.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
           console.log(`[${backendType}] Token JWT enviado:`, token.substring(0, 50) + '...');
         } else {
-          console.warn(`[${backendType}] Token não disponível!`);
+          console.warn(`[${backendType}] Token não disponível mesmo com usuário autenticado!`);
         }
       } else {
-        console.warn(`[${backendType}] Keycloak não inicializado ou usuário não autenticado!`);
+        console.warn(`[${backendType}] Usuário não autenticado - token não será enviado`);
       }
 
       console.log(`[${backendType}] ${config.method?.toUpperCase()} ${config.url}`);
@@ -57,10 +56,9 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
       
       // Verifica se é um erro de autenticação
       if (error.response?.status === 401) {
-        console.error(`[${backendType}] Token inválido ou expirado - redirecionando para login`);
-        if (keycloakService.isInitialized()) {
-          keycloakService.logout();
-        }
+        console.error(`[${backendType}] Token inválido ou expirado (401)`);
+        console.log(`[${backendType}] Debug auth info:`, keycloakService.getDebugInfo());
+        // Não fazer logout automático - deixar o usuário decidir
       }
       
       // Verifica se é um erro de conexão

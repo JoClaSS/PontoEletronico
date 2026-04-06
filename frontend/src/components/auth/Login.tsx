@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Card,
@@ -6,19 +6,63 @@ import {
   Typography,
   Button,
   Container,
-  Divider
+  Divider,
+  TextField,
+  Alert,
+  CircularProgress,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
 import {
   Login as LoginIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon,
+  Person as PersonIcon,
+  Lock as LockIcon,
+  Visibility,
+  VisibilityOff
 } from '@mui/icons-material';
 import { useKeycloak } from '../../contexts/KeycloakContext';
+import keycloakService from '../../services/keycloakService';
 
 const Login: React.FC = () => {
-  const { login } = useKeycloak();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    login();
+  const { refreshAuthState } = useKeycloak();
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!username.trim() || !password.trim()) {
+      setError('Por favor, preencha todos os campos');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const success = await keycloakService.loginDirect(username.trim(), password);
+      
+      if (success) {
+        // Atualiza o contexto de autenticação
+        refreshAuthState();
+      } else {
+        setError('Usuário ou senha incorretos');
+      }
+    } catch (error) {
+      console.error('Erro no login:', error);
+      setError('Erro ao conectar com o servidor de autenticação');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTogglePassword = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -69,45 +113,120 @@ const Login: React.FC = () => {
               <Divider sx={{ my: 3 }} />
             </Box>
 
-            {/* Login Info */}
-            <Box textAlign="center" mb={4}>
-              <Typography 
-                variant="h6" 
-                gutterBottom
-                color="text.primary"
-              >
-                Autenticação Segura
-              </Typography>
-              <Typography 
-                variant="body2" 
-                color="text.secondary"
+            {/* Erro */}
+            {error && (
+              <Alert 
+                severity="error" 
                 sx={{ mb: 3 }}
+                onClose={() => setError('')}
               >
-                Entre com suas credenciais para acessar o sistema
-              </Typography>
-            </Box>
+                {error}
+              </Alert>
+            )}
 
-            {/* Login Button */}
-            <Button
-              onClick={handleLogin}
-              variant="contained"
-              size="large"
-              startIcon={<LoginIcon />}
-              fullWidth
-              sx={{
-                py: 1.5,
-                fontSize: '1.1rem',
-                fontWeight: 'bold',
-                borderRadius: 2,
-                textTransform: 'none',
-                boxShadow: 3,
-                '&:hover': {
-                  boxShadow: 6,
-                }
-              }}
+            {/* Form */}
+            <Box 
+              component="form" 
+              onSubmit={handleSubmit}
+              sx={{ width: '100%' }}
             >
-              Entrar no Sistema
-            </Button>
+              <TextField
+                fullWidth
+                label="Usuário ou E-mail"
+                variant="outlined"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
+                required
+                sx={{ mb: 3 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Senha"
+                type={showPassword ? 'text' : 'password'}
+                variant="outlined"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+                sx={{ mb: 4 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={handleTogglePassword}
+                        edge="end"
+                        disabled={loading}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              {/* Login Button */}
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                fullWidth
+                disabled={loading}
+                sx={{
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  boxShadow: 3,
+                  '&:hover': {
+                    boxShadow: 6,
+                  }
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={24} color="inherit" sx={{ mr: 1 }} />
+                ) : (
+                  <LoginIcon sx={{ mr: 1 }} />
+                )}
+                {loading ? 'Entrando...' : 'Entrar no Sistema'}
+              </Button>
+
+              {/* Forgot Password Link */}
+              <Box textAlign="center" mt={3}>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => keycloakService.openResetPassword()}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.9rem',
+                    color: 'primary.main',
+                    '&:hover': {
+                      backgroundColor: 'transparent',
+                      textDecoration: 'underline'
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  Esqueceu a senha?
+                </Button>
+              </Box>
+            </Box>
 
             {/* Footer */}
             <Box textAlign="center" mt={4}>

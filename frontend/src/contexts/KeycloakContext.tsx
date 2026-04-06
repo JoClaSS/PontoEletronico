@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import keycloakService, { type UserProfile } from '../services/keycloakService';
 
@@ -12,6 +12,7 @@ interface KeycloakContextType {
   isFuncionario: () => boolean;
   isMaster: () => boolean;
   getToken: () => string | undefined;
+  refreshAuthState: () => void; // Nova função para atualizar o estado
 }
 
 const KeycloakContext = createContext<KeycloakContextType | undefined>(undefined);
@@ -33,8 +34,12 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     const initKeycloak = async () => {
       try {
         const authenticated = await keycloakService.init();
@@ -61,6 +66,8 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
 
   const logout = () => {
     keycloakService.logout();
+    // Atualizar o estado de autenticação após logout
+    refreshAuthState();
   };
 
   const hasRole = (role: string) => {
@@ -81,6 +88,21 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
 
   const getToken = () => {
     return keycloakService.getToken();
+  };
+
+  // Função para atualizar o estado de autenticação
+  const refreshAuthState = () => {
+    const authenticated = keycloakService.isAuthenticated();
+    console.log('RefreshAuthState - isAuthenticated:', authenticated);
+    
+    setIsAuthenticated(authenticated);
+    
+    if (authenticated) {
+      const profile = keycloakService.getUserProfile();
+      setUserProfile(profile);
+    } else {
+      setUserProfile(null);
+    }
   };
 
   if (!isInitialized) {
@@ -130,7 +152,8 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
     isAdmin,
     isFuncionario,
     isMaster,
-    getToken
+    getToken,
+    refreshAuthState
   };
 
   return (
