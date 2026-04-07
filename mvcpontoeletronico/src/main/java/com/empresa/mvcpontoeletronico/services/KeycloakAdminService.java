@@ -64,11 +64,11 @@ public class KeycloakAdminService {
         user.setEnabled(true);
         user.setEmailVerified(true);
 
-        // Criar credencial (senha = CPF)
+        // Criar credencial (senha = CPF) - marcada como temporária
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(cpf);
-        credential.setTemporary(false);
+        credential.setTemporary(true); // Força o usuário a trocar a senha no primeiro login
         
         user.setCredentials(Collections.singletonList(credential));
 

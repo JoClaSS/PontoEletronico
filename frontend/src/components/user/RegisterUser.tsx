@@ -155,7 +155,7 @@ const RegisterUser: React.FC = () => {
 
       setSnackbar({ 
         open: true, 
-        message: 'Usuário criado com sucesso no sistema e no Keycloak!', 
+        message: 'Usuário criado com sucesso! A senha inicial é o CPF (será necessário alterar no primeiro login).', 
         severity: 'success' 
       });
 
@@ -255,6 +255,14 @@ const RegisterUser: React.FC = () => {
                   </FormControl>
                 </Box>
               </Box>
+
+              {/* Nota informativa sobre a senha */}
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>Informação:</strong> A senha inicial do usuário será o CPF informado e será marcada como temporária. 
+                  O usuário será obrigado a alterar a senha no primeiro acesso ao sistema.
+                </Typography>
+              </Alert>
 
               {/* Botões de ação */}
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
