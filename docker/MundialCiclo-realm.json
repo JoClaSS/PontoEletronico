@@ -6,10 +6,10 @@
   "registrationAllowed": false,
   "resetPasswordAllowed": true,
   "rememberMe": true,
-  "accessTokenLifespan": 3600,
-  "accessTokenLifespanForImplicitFlow": 3600,
-  "ssoSessionIdleTimeout": 7200,
-  "ssoSessionMaxLifespan": 36000,
+  "accessTokenLifespan": 28800,
+  "accessTokenLifespanForImplicitFlow": 28800,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 86400,
   "clients": [
     {
       "clientId": "ponto-frontend",
@@ -36,7 +36,7 @@
         "post.logout.redirect.uris": "http://localhost:5174/*##http://localhost:5173/*",
         "oauth2.device.authorization.grant.enabled": "false",
         "oidc.ciba.grant.enabled": "false",
-        "access.token.lifespan": "3600",
+        "access.token.lifespan": "28800",
         "web.origins": "+"
       },
       "protocolMappers": []
