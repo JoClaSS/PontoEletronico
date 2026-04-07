@@ -214,10 +214,62 @@ const ViewPoints: React.FC = () => {
       }
     });
     
+    // Calcula horas trabalhadas para cada grupo
+    grupos.forEach((grupo, data) => {
+      grupo.horasTrabalhadas = calcularHorasTrabalhadas(grupo);
+    });
+    
     // Converte para array e ordena por data (mais recente primeiro)
     return Array.from(grupos.values()).sort((a, b) => 
       new Date(b.data).getTime() - new Date(a.data).getTime()
     );
+  };
+
+  // Função para calcular horas trabalhadas baseado nos 3 períodos
+  const calcularHorasTrabalhadas = (registro: PontoAgrupado): string => {
+    let totalMinutos = 0;
+
+    // Período 1 (entrada1 - saida1)
+    if (registro.entrada1 && registro.saida1) {
+      const entrada1 = horaParaMinutos(registro.entrada1);
+      const saida1 = horaParaMinutos(registro.saida1);
+      if (saida1 > entrada1) {
+        totalMinutos += saida1 - entrada1;
+      }
+    }
+
+    // Período 2 (entrada2 - saida2)
+    if (registro.entrada2 && registro.saida2) {
+      const entrada2 = horaParaMinutos(registro.entrada2);
+      const saida2 = horaParaMinutos(registro.saida2);
+      if (saida2 > entrada2) {
+        totalMinutos += saida2 - entrada2;
+      }
+    }
+
+    // Período 3 (entrada3 - saida3)
+    if (registro.entrada3 && registro.saida3) {
+      const entrada3 = horaParaMinutos(registro.entrada3);
+      const saida3 = horaParaMinutos(registro.saida3);
+      if (saida3 > entrada3) {
+        totalMinutos += saida3 - entrada3;
+      }
+    }
+
+    return minutosParaHora(totalMinutos);
+  };
+
+  // Função auxiliar para converter hora (HH:mm) em minutos
+  const horaParaMinutos = (hora: string): number => {
+    const [horas, minutos] = hora.split(':').map(Number);
+    return horas * 60 + minutos;
+  };
+
+  // Função auxiliar para converter minutos em hora (HH:mm)
+  const minutosParaHora = (minutos: number): string => {
+    const horas = Math.floor(minutos / 60);
+    const mins = minutos % 60;
+    return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -326,6 +378,7 @@ const ViewPoints: React.FC = () => {
                         <TableCell align="center"><strong>Saída 2</strong></TableCell>
                         <TableCell align="center"><strong>Entrada 3</strong></TableCell>
                         <TableCell align="center"><strong>Saída 3</strong></TableCell>
+                        <TableCell align="center"><strong>Horas Trabalhadas</strong></TableCell>
                         <TableCell><strong>Observação</strong></TableCell>
                       </TableRow>
                     </TableHead>
@@ -376,6 +429,14 @@ const ViewPoints: React.FC = () => {
                             ) : (
                               <span style={{ color: '#999' }}>-</span>
                             )}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip 
+                              label={registro.horasTrabalhadas || '00:00'} 
+                              color={registro.horasTrabalhadas && registro.horasTrabalhadas !== '00:00' ? 'primary' : 'default'}
+                              size="small"
+                              variant={registro.horasTrabalhadas && registro.horasTrabalhadas !== '00:00' ? 'filled' : 'outlined'}
+                            />
                           </TableCell>
                           <TableCell>{registro.observacao || '-'}</TableCell>
                         </TableRow>

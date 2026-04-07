@@ -146,6 +146,7 @@ export interface PontoAgrupado {
   saida2?: string; // HH:mm
   entrada3?: string; // HH:mm
   saida3?: string; // HH:mm
+  horasTrabalhadas?: string; // Horas totais trabalhadas no formato HH:mm
   observacao?: string;
 }
 
