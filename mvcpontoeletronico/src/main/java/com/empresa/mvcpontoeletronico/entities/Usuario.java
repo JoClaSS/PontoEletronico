@@ -51,6 +51,10 @@ public class Usuario {
     @Builder.Default
     private RoleType role = RoleType.FUNCIONARIO;
     
+    @Column(name = "ativo", nullable = false)
+    @Builder.Default
+    private Boolean ativo = true;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

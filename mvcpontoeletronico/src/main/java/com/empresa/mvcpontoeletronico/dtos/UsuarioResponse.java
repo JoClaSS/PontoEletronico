@@ -20,6 +20,7 @@ public class UsuarioResponse {
     private String email;
     private String cpf;
     private RoleType role;
+    private Boolean ativo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 
 import java.util.Collections;
@@ -120,6 +121,58 @@ public class KeycloakAdminService {
             realmResource.users().get(userId).remove();
         } catch (Exception e) {
             throw new RuntimeException("Erro ao deletar usuário no Keycloak", e);
+        }
+    }
+
+    public void disableUser(String userId) {
+        try {
+            // Primeiro verifica se o usuário existe no Keycloak
+            UserRepresentation user = realmResource.users().get(userId).toRepresentation();
+            
+            if (user == null) {
+                // Usuário não encontrado no Keycloak - isso é OK, pode ter sido removido manualmente
+                return;
+            }
+            
+            // Se o usuário já está desabilitado, não faz nada
+            if (!user.isEnabled()) {
+                return;
+            }
+            
+            // Desabilita o usuário
+            user.setEnabled(false);
+            realmResource.users().get(userId).update(user);
+            
+        } catch (NotFoundException e) {
+            // Usuário não encontrado no Keycloak - isso é OK para desativação
+            // Não relança a exceção, apenas loga
+            System.out.println("Usuário " + userId + " não encontrado no Keycloak - continuando com desativação local");
+        } catch (Exception e) {
+            // Outros erros são mais sérios
+            throw new RuntimeException("Erro ao desabilitar usuário no Keycloak: " + e.getMessage(), e);
+        }
+    }
+
+    public void enableUser(String userId) {
+        try {
+            UserRepresentation user = realmResource.users().get(userId).toRepresentation();
+            
+            if (user == null) {
+                throw new RuntimeException("Usuário não encontrado no Keycloak para reativação");
+            }
+            
+            // Se o usuário já está habilitado, não faz nada
+            if (user.isEnabled()) {
+                return;
+            }
+            
+            user.setEnabled(true);
+            realmResource.users().get(userId).update(user);
+            
+        } catch (NotFoundException e) {
+            throw new RuntimeException("Usuário não encontrado no Keycloak para reativação", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao habilitar usuário no Keycloak: " + e.getMessage(), e);
         }
     }
 

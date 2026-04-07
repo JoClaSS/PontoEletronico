@@ -54,6 +54,14 @@ export const apiMVCService = {
     return response.data;
   },
 
+  async desativarUsuario(id: string): Promise<void> {
+    await apiMVC.delete(`/api/usuarios/${id}`);
+  },
+
+  async reativarUsuario(id: string): Promise<void> {
+    await apiMVC.put(`/api/usuarios/${id}/reativar`);
+  },
+
   // Pontos Eletrônicos
   async registrarPonto(data: RegistrarPontoRequest): Promise<PontoEletronico> {
     console.log('[MVC] Dados recebidos para registrar ponto:', data);

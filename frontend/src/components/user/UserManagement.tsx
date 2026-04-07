@@ -23,14 +23,21 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  IconButton,
+  Tooltip,
+  Chip,
+  DialogContentText
 } from '@mui/material';
 import {
   People as PeopleIcon,
   PersonAdd as PersonAddIcon,
   Save as SaveIcon,
   Clear as ClearIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Visibility as VisibilityIcon,
+  Delete as DeleteIcon,
+  Warning as WarningIcon
 } from '@mui/icons-material';
 import { useApi } from '../../hooks/useApi';
 import type { Usuario, CriarUsuarioRequest, RoleType } from '../../types';
@@ -44,9 +51,12 @@ interface FormData {
 
 const UserManagement: React.FC = () => {
   const { useUsuarios } = useApi();
-  const { data: usuarios, loading, error, loadUsuarios, criarUsuario } = useUsuarios();
+  const { data: usuarios, loading, error, loadUsuarios, criarUsuario, desativarUsuario } = useUsuarios();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     email: '',
@@ -61,6 +71,11 @@ const UserManagement: React.FC = () => {
   });
 
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Estados para filtros
+  const [filtroNome, setFiltroNome] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState('todos');
 
   // Carrega usuários ao montar o componente
   useEffect(() => {
@@ -184,6 +199,66 @@ const UserManagement: React.FC = () => {
     return date.toLocaleDateString('pt-BR');
   };
 
+  const handleViewUser = (usuario: Usuario) => {
+    setSelectedUser(usuario);
+    setViewModalOpen(true);
+  };
+
+  const handleDeleteUser = (usuario: Usuario) => {
+    setSelectedUser(usuario);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedUser) return;
+
+    setDeleteLoading(true);
+    try {
+      await desativarUsuario(selectedUser.id);
+      setSnackbar({
+        open: true,
+        message: 'Usuário desativado com sucesso!',
+        severity: 'success'
+      });
+      setDeleteModalOpen(false);
+      setSelectedUser(null);
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Erro ao desativar usuário',
+        severity: 'error'
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Função para filtrar usuários
+  const filtrarUsuarios = (): Usuario[] => {
+    if (!usuarios) return [];
+
+    return usuarios.filter(usuario => {
+      // Filtro por nome
+      const nomeMatch = usuario.nome.toLowerCase().includes(filtroNome.toLowerCase());
+      
+      // Filtro por status
+      let statusMatch = true;
+      if (filtroStatus === 'ativo') {
+        statusMatch = usuario.ativo !== false;
+      } else if (filtroStatus === 'inativo') {
+        statusMatch = usuario.ativo === false;
+      }
+      // Se filtroStatus === 'todos', statusMatch permanece true
+
+      return nomeMatch && statusMatch;
+    });
+  };
+
+  const handleLimparFiltros = () => {
+    setFiltroNome('');
+    setFiltroStatus('todos');
+  };
+
   const renderUserTable = () => {
     if (loading) {
       return (
@@ -201,6 +276,8 @@ const UserManagement: React.FC = () => {
       );
     }
 
+    const usuariosFiltrados = filtrarUsuarios();
+
     if (!usuarios || usuarios.length === 0) {
       return (
         <Box sx={{ textAlign: 'center', p: 4 }}>
@@ -214,29 +291,70 @@ const UserManagement: React.FC = () => {
       );
     }
 
+    if (usuariosFiltrados.length === 0) {
+      return (
+        <Box sx={{ textAlign: 'center', p: 4 }}>
+          <Typography variant="h6" color="text.secondary">
+            Nenhum usuário encontrado com os filtros aplicados
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Tente ajustar os filtros ou limpar para ver todos os usuários
+          </Typography>
+        </Box>
+      );
+    }
+
     return (
       <TableContainer component={Paper} sx={{ mt: 2 }}>
         <Table>
           <TableHead sx={{ backgroundColor: 'grey.100' }}>
             <TableRow>
               <TableCell><strong>Nome</strong></TableCell>
-              <TableCell><strong>Email</strong></TableCell>
-              <TableCell><strong>CPF</strong></TableCell>
               <TableCell><strong>Role</strong></TableCell>
+              <TableCell><strong>Status</strong></TableCell>
               <TableCell><strong>Data Criação</strong></TableCell>
+              <TableCell align="center"><strong>Ações</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {usuarios.map((usuario) => (
+            {usuariosFiltrados.map((usuario) => (
               <TableRow key={usuario.id} hover>
                 <TableCell>{usuario.nome}</TableCell>
-                <TableCell>{usuario.email}</TableCell>
-                <TableCell>{usuario.cpf || '-'}</TableCell>
                 <TableCell>
                   {usuario.role === 'ADMIN' ? 'Administrador' : usuario.role === 'FUNCIONARIO' ? 'Funcionário' : usuario.role || '-'}
                 </TableCell>
                 <TableCell>
+                  <Chip 
+                    label={usuario.ativo !== false ? 'Ativo' : 'Inativo'}
+                    color={usuario.ativo !== false ? 'success' : 'error'}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
                   {usuario.createdAt ? formatDate(usuario.createdAt) : '-'}
+                </TableCell>
+                <TableCell align="center">
+                  <Tooltip title="Visualizar">
+                    <IconButton 
+                      onClick={() => handleViewUser(usuario)} 
+                      color="primary"
+                      size="small"
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
+                  </Tooltip>
+                  {usuario.ativo !== false && (
+                    <Tooltip title="Desativar Usuário">
+                      <IconButton 
+                        onClick={() => handleDeleteUser(usuario)} 
+                        color="error"
+                        size="small"
+                        sx={{ ml: 1 }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -267,6 +385,59 @@ const UserManagement: React.FC = () => {
             >
               Cadastrar Usuário
             </Button>
+          </Box>
+
+          {/* Filtros */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2, 
+            mb: 3, 
+            p: 2, 
+            backgroundColor: 'grey.50', 
+            borderRadius: 1,
+            flexWrap: 'wrap',
+            alignItems: 'center'
+          }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+              Filtros:
+            </Typography>
+            
+            <TextField
+              size="small"
+              label="Buscar por nome"
+              value={filtroNome}
+              onChange={(e) => setFiltroNome(e.target.value)}
+              sx={{ minWidth: 200 }}
+              placeholder="Digite o nome..."
+            />
+            
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={filtroStatus}
+                label="Status"
+                onChange={(e) => setFiltroStatus(e.target.value)}
+              >
+                <MenuItem value="todos">Todos</MenuItem>
+                <MenuItem value="ativo">Ativos</MenuItem>
+                <MenuItem value="inativo">Inativos</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleLimparFiltros}
+              startIcon={<ClearIcon />}
+            >
+              Limpar Filtros
+            </Button>
+            
+            {(filtroNome || filtroStatus !== 'todos') && (
+              <Typography variant="body2" color="text.secondary">
+                {filtrarUsuarios().length} usuário(s) encontrado(s)
+              </Typography>
+            )}
           </Box>
 
           {/* Tabela de usuários */}
@@ -377,6 +548,147 @@ const UserManagement: React.FC = () => {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Modal de visualização de usuário */}
+      <Dialog 
+        open={viewModalOpen} 
+        onClose={() => setViewModalOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <VisibilityIcon sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="h6" color='black'>
+              Detalhes do Usuário
+            </Typography>
+          </Box>
+          <Button
+            onClick={() => setViewModalOpen(false)}
+            sx={{ minWidth: 'auto', p: 1 }}
+          >
+            <CloseIcon />
+          </Button>
+        </DialogTitle>
+        
+        <DialogContent>
+          {selectedUser && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <br></br>
+              <TextField
+                fullWidth
+                label="Nome"
+                value={selectedUser.nome}
+                variant="outlined"
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                label="Email"
+                value={selectedUser.email}
+                variant="outlined"
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                label="CPF"
+                value={selectedUser.cpf || 'Não informado'}
+                variant="outlined"
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                label="Role"
+                value={selectedUser.role === 'ADMIN' ? 'Administrador' : selectedUser.role === 'FUNCIONARIO' ? 'Funcionário' : selectedUser.role || 'Não informada'}
+                variant="outlined"
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                label="Status"
+                value={selectedUser.ativo !== false ? 'Ativo' : 'Inativo'}
+                variant="outlined"
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                label="Data de Criação"
+                value={selectedUser.createdAt ? formatDate(selectedUser.createdAt) : 'Não informada'}
+                variant="outlined"
+                InputProps={{ readOnly: true }}
+              />
+              {selectedUser.updatedAt && (
+                <TextField
+                  fullWidth
+                  label="Última Atualização"
+                  value={formatDate(selectedUser.updatedAt)}
+                  variant="outlined"
+                  InputProps={{ readOnly: true }}
+                />
+              )}
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setViewModalOpen(false)}
+          >
+            Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de confirmação de exclusão */}
+      <Dialog 
+        open={deleteModalOpen} 
+        onClose={() => setDeleteModalOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', color: 'error.main' }}>
+          <WarningIcon sx={{ mr: 1 }} />
+          Confirmar Desativação
+        </DialogTitle>
+        
+        <DialogContent>
+          <DialogContentText>
+            {selectedUser && (
+              <>
+                Tem certeza que deseja <strong>desativar</strong> o usuário <strong>{selectedUser.nome}</strong>?
+                <br /><br />
+                Esta ação irá:
+                <br />
+                • Impedir que o usuário faça login no sistema
+                <br />
+                • Manter os dados históricos do usuário
+                <br />
+                • Permitir reativação posterior se necessário
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setDeleteModalOpen(false)}
+            disabled={deleteLoading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={16} /> : <DeleteIcon />}
+          >
+            {deleteLoading ? 'Desativando...' : 'Desativar'}
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Snackbar para mensagens */}

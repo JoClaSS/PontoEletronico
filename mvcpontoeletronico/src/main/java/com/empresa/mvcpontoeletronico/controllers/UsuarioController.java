@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.Arrays;
 
@@ -111,16 +112,31 @@ public class UsuarioController {
     }
     
     /**
-     * Remove um usuário
+     * Desativa um usuário (soft delete)
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> removerUsuario(@PathVariable UUID id) {
-        log.debug("DELETE /api/usuarios/{} - Removendo usuário", id);
+    public ResponseEntity<?> desativarUsuario(@PathVariable UUID id) {
+        log.debug("DELETE /api/usuarios/{} - Desativando usuário", id);
         try {
-            usuarioService.remover(id);
-            return ResponseEntity.noContent().build();
+            usuarioService.desativarUsuario(id);
+            return ResponseEntity.ok().body(Map.of("message", "Usuário desativado com sucesso"));
         } catch (RuntimeException e) {
-            log.warn("Erro ao remover usuário: {}", e.getMessage());
+            log.warn("Erro ao desativar usuário: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    /**
+     * Reativa um usuário
+     */
+    @PutMapping("/{id}/reativar")
+    public ResponseEntity<?> reativarUsuario(@PathVariable UUID id) {
+        log.debug("PUT /api/usuarios/{}/reativar - Reativando usuário", id);
+        try {
+            usuarioService.reativarUsuario(id);
+            return ResponseEntity.ok().body(Map.of("message", "Usuário reativado com sucesso"));
+        } catch (RuntimeException e) {
+            log.warn("Erro ao reativar usuário: {}", e.getMessage());
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }

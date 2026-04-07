@@ -237,8 +237,89 @@ public class UsuarioService {
                 .email(usuario.getEmail())
                 .cpf(usuario.getCpf())
                 .role(usuario.getRole())
+                .ativo(usuario.getAtivo())
                 .createdAt(usuario.getCreatedAt())
                 .updatedAt(usuario.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Desativa um usuário (soft delete)
+     */
+    @Transactional
+    public void desativarUsuario(UUID id) {
+        log.debug("Desativando usuário ID: {}", id);
+        
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+        
+        if (!usuario.getAtivo()) {
+            throw new IllegalArgumentException("Usuário já está desativado");
+        }
+        
+        boolean keycloakSuccess = true;
+        String keycloakError = null;
+        
+        // Tenta desabilitar no Keycloak, mas não falha se der erro
+        try {
+            keycloakAdminService.disableUser(id.toString());
+            log.info("Usuário desabilitado com sucesso no Keycloak: {}", id);
+        } catch (Exception e) {
+            keycloakSuccess = false;
+            keycloakError = e.getMessage();
+            log.warn("Falha ao desabilitar usuário no Keycloak (continuando com desativação local): {}", e.getMessage());
+        }
+        
+        try {
+            // Sempre desativa no banco, independentemente do resultado do Keycloak
+            usuario.setAtivo(false);
+            usuarioRepository.save(usuario);
+            
+            if (keycloakSuccess) {
+                log.info("Usuário desativado com sucesso: {} (ID: {})", usuario.getNome(), id);
+            } else {
+                log.info("Usuário desativado no banco local: {} (ID: {}). Aviso: falha no Keycloak - {}", 
+                        usuario.getNome(), id, keycloakError);
+            }
+            
+        } catch (Exception e) {
+            log.error("Erro crítico ao desativar usuário no banco: {}", e.getMessage());
+            throw new RuntimeException("Erro ao desativar usuário: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Reativa um usuário  
+     */
+    @Transactional
+    public void reativarUsuario(UUID id) {
+        log.debug("Reativando usuário ID: {}", id);
+        
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+        
+        if (usuario.getAtivo()) {
+            throw new IllegalArgumentException("Usuário já está ativo");
+        }
+        
+        // Primeiro reativa no banco
+        try {
+            usuario.setAtivo(true);
+            usuarioRepository.save(usuario);
+            log.info("Usuário reativado no banco: {} (ID: {})", usuario.getNome(), id);
+        } catch (Exception e) {
+            log.error("Erro ao reativar usuário no banco: {}", e.getMessage());
+            throw new RuntimeException("Erro ao reativar usuário no banco: " + e.getMessage());
+        }
+        
+        // Depois tenta habilitar no Keycloak
+        try {
+            keycloakAdminService.enableUser(id.toString());
+            log.info("Usuário reativado com sucesso no Keycloak: {} (ID: {})", usuario.getNome(), id);
+        } catch (Exception e) {
+            log.error("Erro ao habilitar usuário no Keycloak (usuário já foi reativado no banco): {}", e.getMessage());
+            // Não relança a exceção para não falhar a operação, mas registra o erro
+            // The user is active in the database, which is the most important part
+        }
     }
 }

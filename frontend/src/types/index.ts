@@ -29,7 +29,7 @@ export interface Usuario {
   role?: RoleType; // role do usuário
   cargo?: string; // apenas no backend Clean
   departamento?: string; // apenas no backend Clean
-  ativo?: boolean; // apenas no backend Clean
+  ativo?: boolean; // indica se usuário está ativo
   createdAt?: string;
   updatedAt?: string;
 }

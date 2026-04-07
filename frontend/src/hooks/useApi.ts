@@ -54,7 +54,60 @@ export const useApi = () => {
       }
     };
 
-    return { ...state, loadUsuarios, criarUsuario };
+    const desativarUsuario = async (id: string): Promise<void> => {
+      setLoading(true);
+      try {
+        await apiService.desativarUsuario(id);
+        // Recarrega a lista após desativar
+        await loadUsuarios();
+      } catch (error: any) {
+        console.error('[useApi] Erro ao desativar usuário:', error);
+        
+        // Extrair mensagem mais específica do erro
+        let errorMessage = 'Erro ao desativar usuário';
+        
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.userMessage) {
+          errorMessage = error.userMessage;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Se contém "Keycloak", dar uma mensagem mais amigável
+        if (errorMessage.includes('Keycloak')) {
+          errorMessage = 'Usuário foi desativado localmente, mas houve problema com o sistema de autenticação. Por favor, verifique com o administrador.';
+        }
+        
+        setState(prev => ({ 
+          ...prev, 
+          error: errorMessage
+        }));
+        throw new Error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const reativarUsuario = async (id: string): Promise<void> => {
+      setLoading(true);
+      try {
+        await apiService.reativarUsuario(id);
+        // Recarrega a lista após reativar
+        await loadUsuarios();
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao reativar usuário';
+        setState(prev => ({ 
+          ...prev, 
+          error: errorMessage
+        }));
+        throw new Error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return { ...state, loadUsuarios, criarUsuario, desativarUsuario, reativarUsuario };
   };
 
   // Hook para operações de ponto

@@ -20,6 +20,14 @@ export class ApiService {
     return apiMVCService.criarUsuario(usuario);
   }
 
+  async desativarUsuario(id: string): Promise<void> {
+    return apiMVCService.desativarUsuario(id);
+  }
+
+  async reativarUsuario(id: string): Promise<void> {
+    return apiMVCService.reativarUsuario(id);
+  }
+
   // Pontos Eletrônicos
   async registrarPonto(data: RegistrarPontoRequest): Promise<PontoEletronico> {
     return apiMVCService.registrarPonto(data);
