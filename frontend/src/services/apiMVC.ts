@@ -1,5 +1,5 @@
 import { createApiClient } from './apiClient';
-import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, CriarUsuarioRequest } from '../types';
+import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, CriarUsuarioRequest, ConfiguracaoEmpresa, AtualizarConfiguracaoRequest } from '../types';
 
 const apiMVC = createApiClient('MVC');
 
@@ -175,5 +175,28 @@ export const apiMVCService = {
   async getPontosPorData(usuarioId: string, data: string): Promise<PontoEletronico[]> {
     const response = await apiMVC.get(`/api/pontos/usuario/${usuarioId}?data=${data}`);
     return response.data.map(mapMVCResponseToFrontend);
+  },
+
+  // Configurações da Empresa
+  async getConfiguracoes(): Promise<ConfiguracaoEmpresa> {
+    try {
+      const response = await apiMVC.get<ConfiguracaoEmpresa>('/api/configuracoes');
+      return response.data;
+    } catch (error: any) {
+      // Se não existir configuração, retorna valores padrão
+      if (error?.response?.status === 404) {
+        return {
+          nomeEmpresa: 'Mundial Ciclo',
+          horarioCheckin: '08:00',
+          horarioCheckout: '18:00'
+        };
+      }
+      throw error;
+    }
+  },
+
+  async salvarConfiguracoes(configuracoes: AtualizarConfiguracaoRequest): Promise<ConfiguracaoEmpresa> {
+    const response = await apiMVC.post<ConfiguracaoEmpresa>('/api/configuracoes', configuracoes);
+    return response.data;
   }
 };

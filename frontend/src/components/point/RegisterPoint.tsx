@@ -28,6 +28,7 @@ import { useApi } from '../../hooks/useApi';
 import { useKeycloak } from '../../contexts/KeycloakContext';
 import { TipoPonto } from '../../types';
 import type { TipoPonto as TipoPontoType } from '../../types';
+import { apiService } from '../../services/apiService';
 
 const RegisterPoint: React.FC = () => {
   const { selectedUser, setSelectedUser, usuarios, setUsuarios } = useAppContext();
@@ -38,6 +39,23 @@ const RegisterPoint: React.FC = () => {
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [horarioPermitido, setHorarioPermitido] = useState({ checkin: '08:00', checkout: '18:00' });
+
+  // Carrega configurações de horário permitido
+  useEffect(() => {
+    const carregarHorarios = async () => {
+      try {
+        const config = await apiService.getConfiguracoes();
+        setHorarioPermitido({
+          checkin: config.horarioCheckin || '08:00',
+          checkout: config.horarioCheckout || '18:00'
+        });
+      } catch (error) {
+        console.log('Erro ao carregar horários - usando padrão:', error);
+      }
+    };
+    carregarHorarios();
+  }, []);
 
   // Atualiza o horário a cada segundo
   useEffect(() => {
@@ -199,6 +217,14 @@ const RegisterPoint: React.FC = () => {
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
               {format(currentTime, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </Typography>
+
+            {/* Informações dos Horários Permitidos */}
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>Horários permitidos para registro:</strong> {horarioPermitido.checkin} às {horarioPermitido.checkout}
+                <br />
+              </Typography>
+            </Alert>
 
             {/* Seleção de Usuário */}
             {(isAdmin() || isMaster()) ? (

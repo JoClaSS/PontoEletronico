@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -31,6 +32,7 @@ public class PontoEletronicoService {
     
     private final PontoEletronicoRepository pontoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ConfiguracaoEmpresaService configuracaoService;
     private static final int INTERVALO_MINIMO_MINUTOS = 10; // 0 = desabilitado para facilitar testes
     
     /**
@@ -53,6 +55,9 @@ public class PontoEletronicoService {
             
         LocalDate data = dataHora.toLocalDate();
         log.debug("Data/hora do registro: {} (data: {})", dataHora, data);
+        
+        // Valida horário baseado nas configurações da empresa
+        validarHorarioPermitido(dataHora);
         
         // Valida se não é muito antigo (máximo 7 dias)
         if (dataHora.isBefore(LocalDateTime.now().minusDays(7))) {
@@ -342,7 +347,47 @@ public class PontoEletronicoService {
         pontoRepository.deleteById(pontoId);
         log.info("Ponto removido com sucesso - ID: {}", pontoId);
     }
-    
+    /**
+     * Valida se o horário atual está dentro do intervalo permitido para registrar ponto
+     * baseado nas configurações da empresa
+     */
+    private void validarHorarioPermitido(LocalDateTime dataHora) {
+        try {
+            // Busca as configurações da empresa
+            var configuracoes = configuracaoService.obterConfiguracoes();
+            
+            LocalTime horarioCheckin = configuracoes.getHorarioCheckin();
+            LocalTime horarioCheckout = configuracoes.getHorarioCheckout();
+            LocalTime horarioAtual = dataHora.toLocalTime();
+            
+            log.debug("Validando horário - Checkin: {}, Checkout: {}, Atual: {}", 
+                    horarioCheckin, horarioCheckout, horarioAtual);
+            
+            // Verifica se o horário atual está dentro do intervalo permitido
+            if (horarioAtual.isBefore(horarioCheckin) || horarioAtual.isAfter(horarioCheckout)) {
+                log.warn("Tentativa de registrar ponto fora do horário permitido. " +
+                        "Horário atual: {}, Permitido: {} às {}", 
+                        horarioAtual, horarioCheckin, horarioCheckout);
+                
+                throw new IllegalArgumentException(
+                    String.format("Registros de ponto só são permitidos entre %s e %s. Horário atual: %s", 
+                            horarioCheckin, horarioCheckout, horarioAtual));
+            }
+            
+            log.debug("Horário validado com sucesso - dentro do intervalo permitido");
+            
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                // Re-propaga erros de validação de horário
+                throw e;
+            }
+            
+            // Log do erro mas permite o registro se não conseguir carregar configurações
+            // (para não bloquear o sistema em caso de problemas na configuração)
+            log.warn("Erro ao validar horário baseado nas configurações da empresa. " +
+                    "Permitindo registro de ponto. Erro: {}", e.getMessage());
+        }
+    }    
     /**
      * Atualiza pontos de uma data específica (para resolução de solicitações)
      */

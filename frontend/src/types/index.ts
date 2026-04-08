@@ -197,3 +197,27 @@ export interface CriarSolicitacaoRequest {
   anexoTamanho?: number;
   anexoConteudo?: Uint8Array;
 }
+
+// Configurações da Empresa
+export interface ConfiguracaoEmpresa {
+  id?: string;
+  nomeEmpresa: string;
+  horarioCheckin: string; // HH:mm
+  horarioCheckout: string; // HH:mm
+  fotoEmpresa?: string; // base64 ou URL
+  logoEmpresaNome?: string; // nome do arquivo original
+  logoEmpresaTipo?: string; // tipo MIME
+  logoEmpresaTamanho?: number; // tamanho em bytes
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AtualizarConfiguracaoRequest {
+  nomeEmpresa: string;
+  horarioCheckin: string;
+  horarioCheckout: string;
+  fotoEmpresa?: string;
+  logoEmpresaNome?: string;
+  logoEmpresaTipo?: string;
+  logoEmpresaTamanho?: number;
+}

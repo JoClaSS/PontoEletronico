@@ -11,6 +11,7 @@ import ViewPoints from './components/point/ViewPoints';
 import Solicitacoes from './components/point/Solicitacoes';
 import RegisterUser from './components/user/RegisterUser';
 import UserManagement from './components/user/UserManagement';
+import Configuracoes from './components/user/Configuracoes';
 
 // Tema do Material-UI
 const theme = createTheme(
@@ -47,6 +48,7 @@ const AppContent: React.FC = () => {
             <Route path="usuarios" element={<UserManagement />} />
             <Route path="usuarios/cadastrar" element={<RegisterUser />} />
             <Route path="solicitacoes" element={<Solicitacoes />} />
+            <Route path="configuracoes" element={<Configuracoes />} />
           </Route>
         </Routes>
       </Router>

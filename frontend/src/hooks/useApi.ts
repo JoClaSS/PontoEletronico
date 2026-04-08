@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { apiService } from '../services/apiService';
-import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, ApiState, CriarUsuarioRequest } from '../types';
+import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, ApiState, CriarUsuarioRequest, ConfiguracaoEmpresa, AtualizarConfiguracaoRequest } from '../types';
 
 export const useApi = () => {
   const { setLoading } = useAppContext();
@@ -243,9 +243,62 @@ export const useApi = () => {
     return { ...state, loadRelatorioHoras };
   };
 
+  // Hook para configurações da empresa
+  const useConfiguracoes = () => {
+    const [state, setState] = useState<ApiState<ConfiguracaoEmpresa>>({
+      data: null,
+      loading: false,
+      error: null
+    });
+
+    const loadConfiguracoes = useCallback(async () => {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      setLoading(true);
+      
+      try {
+        const configuracoes = await apiService.getConfiguracoes();
+        setState({ data: configuracoes, loading: false, error: null });
+        return configuracoes;
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao carregar configurações';
+        setState({ 
+          data: null, 
+          loading: false, 
+          error: errorMessage
+        });
+        throw new Error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    }, []); // Removida dependência de setLoading para evitar loop
+
+    const salvarConfiguracoes = useCallback(async (configuracoes: AtualizarConfiguracaoRequest): Promise<ConfiguracaoEmpresa | null> => {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      setLoading(true);
+      
+      try {
+        const configuracoesSalvas = await apiService.salvarConfiguracoes(configuracoes);
+        setState({ data: configuracoesSalvas, loading: false, error: null });
+        return configuracoesSalvas;
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao salvar configurações';
+        setState(prev => ({ 
+          ...prev, 
+          error: errorMessage
+        }));
+        throw new Error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    }, []); // Removida dependência de setLoading para evitar loop
+
+    return { ...state, loadConfiguracoes, salvarConfiguracoes };
+  };
+
   return {
     useUsuarios,
     usePontos,
-    useRelatorios
+    useRelatorios,
+    useConfiguracoes
   };
 };
