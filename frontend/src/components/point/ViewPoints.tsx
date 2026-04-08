@@ -8,7 +8,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
   Button,
   Table,
   TableBody,
@@ -23,17 +22,27 @@ import {
   Stack
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/pt-br';
 import {
   Person as PersonIcon,
   Assessment as ReportIcon,
-  Schedule as ScheduleIcon
+  Schedule as ScheduleIcon,
+  PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
 import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { useKeycloak } from '../../contexts/KeycloakContext';
 import type { FiltrosPontos, PontoAgrupado } from '../../types';
+
+// Configurar dayjs para português
+dayjs.locale('pt-br');
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -74,6 +83,11 @@ const ViewPoints: React.FC = () => {
     dataInicio: format(new Date(), 'yyyy-MM-dd'),
     dataFim: format(new Date(), 'yyyy-MM-dd')
   });
+  const [relatorioLocal, setRelatorioLocal] = useState<{
+    totalHoras: string;
+    diasTrabalhados: number;
+    gerado: boolean;
+  } | null>(null);
 
   // Carrega usuários na inicialização
   useEffect(() => {
@@ -107,63 +121,196 @@ const ViewPoints: React.FC = () => {
     setTabValue(newValue);
   };
 
-  const handleFiltroChange = (field: keyof FiltrosPontos) => (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setFiltros(prev => ({
-      ...prev,
-      [field]: event.target.value
-    }));
-  };
-
-  const aplicarFiltroRapido = (tipo: 'hoje' | 'semana' | 'mes') => {
-    const hoje = new Date();
-    
-    switch (tipo) {
-      case 'hoje':
-        setFiltros({
-          dataInicio: format(hoje, 'yyyy-MM-dd'),
-          dataFim: format(hoje, 'yyyy-MM-dd')
-        });
-        break;
-      case 'semana':
-        setFiltros({
-          dataInicio: format(startOfWeek(hoje, { locale: ptBR }), 'yyyy-MM-dd'),
-          dataFim: format(endOfWeek(hoje, { locale: ptBR }), 'yyyy-MM-dd')
-        });
-        break;
-      case 'mes':
-        setFiltros({
-          dataInicio: format(startOfMonth(hoje), 'yyyy-MM-dd'),
-          dataFim: format(endOfMonth(hoje), 'yyyy-MM-dd')
-        });
-        break;
-    }
-  };
-
   const buscarPontos = useCallback(() => {
     if (!selectedUser || !filtros.dataInicio || !filtros.dataFim) return;
     
     if (filtros.dataInicio === filtros.dataFim) {
-      // Pontos de um dia específico - usa a data dos filtros
       pontosHook.loadPontosPorData?.(selectedUser.id, filtros.dataInicio);
     } else {
-      // Pontos de um período
       pontosHook.loadPontosPorPeriodo?.(selectedUser.id, filtros);
     }
   }, [selectedUser?.id, filtros.dataInicio, filtros.dataFim]);
 
-  // Carrega pontos quando usuário ou filtros mudarem
+  // Carrega pontos quando usuário for selecionado pela primeira vez
   useEffect(() => {
-    if (selectedUser) {
+    if (selectedUser && !pontosHook.data) {
       buscarPontos();
     }
-  }, [selectedUser, buscarPontos]);
+  }, [selectedUser?.id, buscarPontos]);
+
+  // Limpa relatório local quando usuário ou filtros mudam
+  useEffect(() => {
+    setRelatorioLocal(null);
+  }, [selectedUser?.id, filtros.dataInicio, filtros.dataFim]);
 
   const gerarRelatorio = () => {
     if (!selectedUser || !filtros.dataInicio || !filtros.dataFim) return;
     
-    relatoriosHook.loadRelatorioHoras(selectedUser.id, filtros);
+    // Verificar se há dados carregados
+    if (!pontosHook.data || pontosHook.data.length === 0) {
+      alert('Primeiro busque os pontos para o período desejado.');
+      return;
+    }
+    
+    // Usar a mesma função de agrupamento da tabela
+    const registrosAgrupados = agruparPontosPorData();
+    
+    // Calcular estatísticas baseadas nos registros agrupados
+    const diasTrabalhados = registrosAgrupados.length;
+    let totalMinutosTrabalhados = 0;
+    
+    registrosAgrupados.forEach(registro => {
+      if (registro.horasTrabalhadas && registro.horasTrabalhadas !== '00:00') {
+        const [horas, minutos] = registro.horasTrabalhadas.split(':').map(Number);
+        totalMinutosTrabalhados += (horas * 60) + minutos;
+      }
+    });
+    
+    const totalHorasTrabalhadas = minutosParaHora(totalMinutosTrabalhados);
+    
+    // Atualizar estado local do relatório
+    setRelatorioLocal({
+      totalHoras: totalHorasTrabalhadas,
+      diasTrabalhados,
+      gerado: true
+    });
+  };
+
+  const gerarPDF = () => {
+    if (!pontosHook.data || pontosHook.data.length === 0) {
+      alert('Nenhum dado encontrado para gerar o PDF. Primeiro busque os pontos.');
+      return;
+    }
+
+    console.log('Dados dos pontos:', pontosHook.data); // Debug
+    
+    const doc = new jsPDF('landscape');
+    const usuario = selectedUser;
+    
+    // Usar a mesma função de agrupamento da tabela
+    const registrosAgrupados = agruparPontosPorData();
+    
+    console.log('Registros agrupados:', registrosAgrupados.length); // Debug
+    
+    // Verificação de segurança
+    if (!usuario) {
+      alert('Dados do usuário não encontrados');
+      return;
+    }
+    
+    // Calcular estatísticas baseadas nos registros agrupados
+    const diasTrabalhados = registrosAgrupados.length;
+    let totalMinutosTrabalhados = 0;
+    
+    registrosAgrupados.forEach(registro => {
+      if (registro.horasTrabalhadas && registro.horasTrabalhadas !== '00:00') {
+        const [horas, minutos] = registro.horasTrabalhadas.split(':').map(Number);
+        totalMinutosTrabalhados += (horas * 60) + minutos;
+      }
+    });
+    
+    const totalHorasTrabalhadas = minutosParaHora(totalMinutosTrabalhados);
+    
+    // Cabeçalho
+    doc.setFontSize(16);
+    doc.text('RELATÓRIO DE FREQUÊNCIA', 150, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Funcionário: ${usuario.nome || 'Nome não informado'}`, 20, 40);
+    
+    // Corrigir formato das datas
+    const dataInicioFormatada = dayjs(filtros.dataInicio).format('DD/MM/YYYY');
+    const dataFimFormatada = dayjs(filtros.dataFim).format('DD/MM/YYYY');
+    
+    doc.text(`Período: ${dataInicioFormatada} a ${dataFimFormatada}`, 20, 50);
+    doc.text(`Total de Horas: ${totalHorasTrabalhadas}`, 20, 60);
+    doc.text(`Dias Trabalhados: ${diasTrabalhados}`, 20, 70);
+    
+    // Linha separadora
+    doc.line(20, 75, 280, 75);
+    
+    // Cabeçalho da tabela
+    doc.setFontSize(9);
+    doc.text('Data', 20, 85);
+    doc.text('Entrada 1', 55, 85);
+    doc.text('Saída 1', 85, 85);
+    doc.text('Entrada 2', 115, 85);
+    doc.text('Saída 2', 145, 85);
+    doc.text('Entrada 3', 175, 85);
+    doc.text('Saída 3', 205, 85);
+    doc.text('Horas', 235, 85);
+    doc.text('Observação', 260, 85);
+    
+    // Linha do cabeçalho
+    doc.line(20, 87, 280, 87);
+    
+    let currentY = 95;
+    
+    // Verificar se há pontos para exibir
+    if (registrosAgrupados.length === 0) {
+      doc.setFontSize(10);
+      doc.text('Nenhum registro encontrado para o período selecionado.', 20, currentY);
+      console.log('Nenhum registro agrupado encontrado para exibir'); // Debug
+    } else {
+      console.log(`Total de ${registrosAgrupados.length} registros agrupados para exibir`); // Debug
+      
+      // Adicionar registros (já estão ordenados por data mais recente primeiro, vamos inverter para PDF)
+      const registrosOrdenados = [...registrosAgrupados].reverse();
+      
+      registrosOrdenados.forEach((registro, index) => {
+        console.log(`Adicionando registro ${index}:`, registro); // Debug
+        
+        // Verificar se precisa de nova página
+        if (currentY > 180) {
+          doc.addPage();
+          currentY = 20;
+          
+          // Repetir cabeçalho na nova página
+          doc.setFontSize(9);
+          doc.text('Data', 20, currentY);
+          doc.text('Entrada 1', 55, currentY);
+          doc.text('Saída 1', 85, currentY);
+          doc.text('Entrada 2', 115, currentY);
+          doc.text('Saída 2', 145, currentY);
+          doc.text('Entrada 3', 175, currentY);
+          doc.text('Saída 3', 205, currentY);
+          doc.text('Horas', 235, currentY);
+          doc.text('Observação', 260, currentY);
+          doc.line(20, currentY + 2, 280, currentY + 2);
+          currentY += 10;
+        }
+        
+        doc.setFontSize(8);
+        const dataFormatada = dayjs(registro.data).format('DD/MM/YYYY');
+        
+        doc.text(dataFormatada, 20, currentY);
+        doc.text(registro.entrada1 || '-', 55, currentY);
+        doc.text(registro.saida1 || '-', 85, currentY);
+        doc.text(registro.entrada2 || '-', 115, currentY);
+        doc.text(registro.saida2 || '-', 145, currentY);
+        doc.text(registro.entrada3 || '-', 175, currentY);
+        doc.text(registro.saida3 || '-', 205, currentY);
+        doc.text(registro.horasTrabalhadas || '-', 235, currentY);
+        doc.text((registro.observacao || '').substring(0, 20), 260, currentY);
+        
+        currentY += 7;
+      });
+    }
+    
+    // Rodapé
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Página ${i} de ${totalPages}`, 150, 200, { align: 'center' });
+      doc.text(`Gerado em: ${dayjs().format('DD/MM/YYYY HH:mm')}`, 280, 200, { align: 'right' });
+    }
+    
+    // Salvar o PDF
+    const nomeArquivo = `relatorio-${(usuario.nome || 'usuario').replace(/\s+/g, '-')}-${dayjs().format('DDMMYYYY')}.pdf`;
+    doc.save(nomeArquivo);
+    
+    console.log('PDF gerado com sucesso:', nomeArquivo); // Debug
   };
 
   // Função para agrupar pontos por data
@@ -215,7 +362,7 @@ const ViewPoints: React.FC = () => {
     });
     
     // Calcula horas trabalhadas para cada grupo
-    grupos.forEach((grupo, data) => {
+    grupos.forEach((grupo) => {
       grupo.horasTrabalhadas = calcularHorasTrabalhadas(grupo);
     });
     
@@ -330,38 +477,47 @@ const ViewPoints: React.FC = () => {
             {/* Aba: Lista de Registros */}
             <TabPanel value={tabValue} index={0}>
               {/* Filtros */}
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }}>
-                <TextField
-                  label="Data Início"
-                  type="date"
-                  value={filtros.dataInicio}
-                  onChange={handleFiltroChange('dataInicio')}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ minWidth: 200 }}
-                />
-                <TextField
-                  label="Data Fim"
-                  type="date"
-                  value={filtros.dataFim}
-                  onChange={handleFiltroChange('dataFim')}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ minWidth: 200 }}
-                />
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <Button variant="outlined" onClick={() => aplicarFiltroRapido('hoje')}>
-                    Hoje
+              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }}>
+                  <DatePicker
+                    label="Data Início"
+                    value={dayjs(filtros.dataInicio)}
+                    onChange={(newValue) => {
+                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
+                      setFiltros(prev => ({ ...prev, dataInicio: formattedDate }));
+                    }}
+                    format="DD/MM/YYYY"
+                    slotProps={{
+                      textField: {
+                        size: 'medium',
+                        sx: { minWidth: 200 }
+                      }
+                    }}
+                  />
+                  <DatePicker
+                    label="Data Fim"
+                    value={dayjs(filtros.dataFim)}
+                    onChange={(newValue) => {
+                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
+                      setFiltros(prev => ({ ...prev, dataFim: formattedDate }));
+                    }}
+                    format="DD/MM/YYYY"
+                    slotProps={{
+                      textField: {
+                        size: 'medium',
+                        sx: { minWidth: 200 }
+                      }
+                    }}
+                  />
+                  <Button 
+                    variant="contained" 
+                    onClick={buscarPontos}
+                    disabled={pontosHook.loading}
+                  >
+                    {pontosHook.loading ? 'Carregando...' : 'Buscar'}
                   </Button>
-                  <Button variant="outlined" onClick={() => aplicarFiltroRapido('semana')}>
-                    Esta Semana
-                  </Button>
-                  <Button variant="outlined" onClick={() => aplicarFiltroRapido('mes')}>
-                    Este Mês
-                  </Button>
-                  <Button variant="contained" onClick={buscarPontos}>
-                    Buscar
-                  </Button>
-                </Box>
-              </Stack>
+                </Stack>
+              </LocalizationProvider>
 
               {/* Tabela de Pontos Agrupada por Data */}
               {pontosHook.loading ? (
@@ -453,45 +609,70 @@ const ViewPoints: React.FC = () => {
 
             {/* Aba: Relatório de Horas */}
             <TabPanel value={tabValue} index={1}>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }}>
-                <TextField
-                  label="Data Início"
-                  type="date"
-                  value={filtros.dataInicio}
-                  onChange={handleFiltroChange('dataInicio')}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ minWidth: 200 }}
-                />
-                <TextField
-                  label="Data Fim"
-                  type="date"
-                  value={filtros.dataFim}
-                  onChange={handleFiltroChange('dataFim')}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ minWidth: 200 }}
-                />
-                <Button 
-                  variant="contained" 
-                  onClick={gerarRelatorio}
-                  startIcon={<ReportIcon />}
-                  sx={{ minWidth: 180 }}
-                >
-                  Gerar Relatório
-                </Button>
-              </Stack>
+              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }}>
+                  <DatePicker
+                    label="Data Início"
+                    value={dayjs(filtros.dataInicio)}
+                    onChange={(newValue) => {
+                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
+                      setFiltros(prev => ({ ...prev, dataInicio: formattedDate }));
+                    }}
+                    format="DD/MM/YYYY"
+                    slotProps={{
+                      textField: {
+                        size: 'medium',
+                        sx: { minWidth: 200 }
+                      }
+                    }}
+                  />
+                  <DatePicker
+                    label="Data Fim"
+                    value={dayjs(filtros.dataFim)}
+                    onChange={(newValue) => {
+                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
+                      setFiltros(prev => ({ ...prev, dataFim: formattedDate }));
+                    }}
+                    format="DD/MM/YYYY"
+                    slotProps={{
+                      textField: {
+                        size: 'medium',
+                        sx: { minWidth: 200 }
+                      }
+                    }}
+                  />
+                  <Button 
+                    variant="contained" 
+                    onClick={gerarRelatorio}
+                    startIcon={<ReportIcon />}
+                    sx={{ minWidth: 180 }}
+                  >
+                    Gerar Relatório
+                  </Button>
+                  {pontosHook.data && pontosHook.data.length > 0 && (
+                    <Button 
+                      variant="outlined" 
+                      color="primary"
+                      onClick={gerarPDF}
+                      startIcon={<PdfIcon />}
+                      sx={{ minWidth: 150 }}
+                    >
+                      Baixar PDF
+                    </Button>
+                  )}
+                </Stack>
+              </LocalizationProvider>
 
-              {relatoriosHook.loading ? (
-                <Typography>Gerando relatório...</Typography>
-              ) : relatoriosHook.data ? (
+                            {relatorioLocal?.gerado ? (
                 <Card>
                   <CardContent>
                     <Typography variant="h6" gutterBottom>
                       Relatório de Horas
                     </Typography>
                     <Stack spacing={1}>
-                      <Typography><strong>Período:</strong> {filtros.dataInicio} a {filtros.dataFim}</Typography>
-                      <Typography><strong>Total de Horas:</strong> {relatoriosHook.data.totalHoras}h</Typography>
-                      <Typography><strong>Dias Trabalhados:</strong> {relatoriosHook.data.diasTrabalhados}</Typography>
+                      <Typography><strong>Período:</strong> {dayjs(filtros.dataInicio).format('DD/MM/YYYY')} a {dayjs(filtros.dataFim).format('DD/MM/YYYY')}</Typography>
+                      <Typography><strong>Total de Horas:</strong> {relatorioLocal.totalHoras}</Typography>
+                      <Typography><strong>Dias Trabalhados:</strong> {relatorioLocal.diasTrabalhados}</Typography>
                     </Stack>
                   </CardContent>
                 </Card>

@@ -282,7 +282,7 @@ const Configuracoes: React.FC = () => {
             {/* Botão para carregar configurações */}
             <Button
               variant="outlined"
-              onClick={carregarConfiguracoes}
+              onClick={() => carregarConfiguracoes(true)}
               disabled={loadingConf}
               startIcon={loadingConf ? <CircularProgress size={16} /> : <SettingsIcon />}
               size="small"
