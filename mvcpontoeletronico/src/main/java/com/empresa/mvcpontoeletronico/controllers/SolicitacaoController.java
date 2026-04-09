@@ -72,6 +72,8 @@ public class SolicitacaoController {
             @RequestParam("dataReferencia") LocalDate dataReferencia,
             @RequestParam("motivoId") UUID motivoId,
             @RequestParam("descricao") String descricao,
+            @RequestParam(value = "diasConsecutivos", required = false, defaultValue = "false") Boolean diasConsecutivos,
+            @RequestParam(value = "quantidadeDias", required = false) Integer quantidadeDias,
             @RequestParam(value = "anexo", required = false) MultipartFile anexo) {
         log.debug("POST /api/solicitacoes/com-anexo - Criando solicitação com anexo para usuário: {}", usuarioId);
         try {
@@ -80,6 +82,8 @@ public class SolicitacaoController {
                 .dataReferencia(dataReferencia)
                 .motivoId(motivoId)
                 .descricao(descricao)
+                .diasConsecutivos(diasConsecutivos)
+                .quantidadeDias(quantidadeDias)
                 .build();
             
             // Adiciona anexo se fornecido

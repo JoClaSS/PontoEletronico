@@ -27,7 +27,11 @@ import {
   IconButton,
   Menu,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormLabel
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -91,8 +95,13 @@ const Solicitacoes: React.FC = () => {
     dataReferencia: '',
     usuarioId: '',
     motivoId: '',
-    descricao: ''
+    descricao: '',
+    diasConsecutivos: false,
+    quantidadeDias: undefined
   });
+
+  // Estados para dias consecutivos
+  const [diasConsecutivos, setDiasConsecutivos] = useState<boolean>(false);
 
   // Carrega usuários na inicialização
   useEffect(() => {
@@ -176,11 +185,14 @@ const Solicitacoes: React.FC = () => {
       dataReferencia: '',
       usuarioId: selectedUser?.id || '',
       motivoId: '',
-      descricao: ''
+      descricao: '',
+      diasConsecutivos: false,
+      quantidadeDias: undefined
     });
     setDataReferencia(null);
     setArquivoSelecionado(null);
     setMotivoSelecionado(null);
+    setDiasConsecutivos(false);
   };
 
   const handleSubmitSolicitacao = async () => {
@@ -208,6 +220,15 @@ const Solicitacoes: React.FC = () => {
         throw new Error('Anexo é obrigatório para este motivo');
       }
       
+      // Valida campos de dias consecutivos
+      if (diasConsecutivos && (!novasSolicitacao.quantidadeDias || novasSolicitacao.quantidadeDias < 2)) {
+        throw new Error('Quantidade de dias é obrigatória e deve ser pelo menos 2');
+      }
+      
+      if (diasConsecutivos && novasSolicitacao.quantidadeDias && novasSolicitacao.quantidadeDias > 30) {
+        throw new Error('Quantidade de dias não pode exceder 30');
+      }
+      
       // Formato da data para envio
       const dataFormatada = format(dataReferencia, 'yyyy-MM-dd');
       
@@ -226,6 +247,15 @@ const Solicitacoes: React.FC = () => {
         formData.append('motivoId', novasSolicitacao.motivoId);
         formData.append('descricao', novasSolicitacao.descricao.trim());
         
+        if (diasConsecutivos) {
+          formData.append('diasConsecutivos', 'true');
+          if (novasSolicitacao.quantidadeDias) {
+            formData.append('quantidadeDias', novasSolicitacao.quantidadeDias.toString());
+          }
+        } else {
+          formData.append('diasConsecutivos', 'false');
+        }
+        
         if (arquivoSelecionado) {
           formData.append('anexo', arquivoSelecionado);
         }
@@ -236,7 +266,9 @@ const Solicitacoes: React.FC = () => {
         await apiMVCService.criarSolicitacao({
           ...novasSolicitacao,
           dataReferencia: dataFormatada,
-          descricao: novasSolicitacao.descricao.trim()
+          descricao: novasSolicitacao.descricao.trim(),
+          diasConsecutivos,
+          quantidadeDias: diasConsecutivos ? novasSolicitacao.quantidadeDias : undefined
         });
       }
 
@@ -764,6 +796,15 @@ const Solicitacoes: React.FC = () => {
                 <Typography variant="body1">{solicitacaoSelecionada.descricao}</Typography>
               </Box>
               
+              {solicitacaoSelecionada.diasConsecutivos && (
+                <Box>
+                  <Typography variant="subtitle2">Dias Consecutivos:</Typography>
+                  <Typography variant="body1">
+                    Sim - {solicitacaoSelecionada.quantidadeDias} dias
+                  </Typography>
+                </Box>
+              )}
+              
               {solicitacaoSelecionada.temAnexo && (
                 <Box>
                   <Typography variant="subtitle2">Anexo:</Typography>
@@ -846,6 +887,46 @@ const Solicitacoes: React.FC = () => {
               required
               fullWidth
             />
+
+            {/* Campo de Dias Consecutivos */}
+            <Box>
+              <FormLabel component="legend">Dias consecutivos?</FormLabel>
+              <RadioGroup
+                row
+                value={diasConsecutivos ? 'sim' : 'nao'}
+                onChange={(e) => {
+                  const valor = e.target.value === 'sim';
+                  setDiasConsecutivos(valor);
+                  setNovaSolicitacao(prev => ({
+                    ...prev,
+                    diasConsecutivos: valor,
+                    quantidadeDias: valor ? prev.quantidadeDias : undefined
+                  }));
+                }}
+              >
+                <FormControlLabel value="nao" control={<Radio />} label="Não" />
+                <FormControlLabel value="sim" control={<Radio />} label="Sim" />
+              </RadioGroup>
+            </Box>
+
+            {/* Campo de Quantidade de Dias - só aparece se dias consecutivos = Sim */}
+            {diasConsecutivos && (
+              <TextField
+                label="Quantidade de dias *"
+                type="number"
+                InputProps={{ 
+                  inputProps: { min: 2, max: 30 }
+                }}
+                value={novasSolicitacao.quantidadeDias || ''}
+                onChange={(e) => {
+                  const valor = e.target.value ? parseInt(e.target.value) : undefined;
+                  setNovaSolicitacao(prev => ({ ...prev, quantidadeDias: valor }));
+                }}
+                required={diasConsecutivos}
+                fullWidth
+                helperText="Mínimo 2 dias, máximo 30 dias"
+              />
+            )}
 
             {/* Campo de Anexo - só aparece se o motivo requer anexo */}
             {motivoSelecionado?.requerAnexo && (

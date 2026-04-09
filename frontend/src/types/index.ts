@@ -183,6 +183,8 @@ export interface Solicitacao {
   anexoTipo?: string;
   anexoTamanho?: number;
   temAnexo: boolean;
+  diasConsecutivos?: boolean;
+  quantidadeDias?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -196,6 +198,8 @@ export interface CriarSolicitacaoRequest {
   anexoTipo?: string;
   anexoTamanho?: number;
   anexoConteudo?: Uint8Array;
+  diasConsecutivos?: boolean;
+  quantidadeDias?: number;
 }
 
 // Configurações da Empresa

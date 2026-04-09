@@ -68,6 +68,8 @@ public class SolicitacaoService {
             .usuario(usuario)
             .motivo(motivo)
             .descricao(request.getDescricao())
+            .diasConsecutivos(request.getDiasConsecutivos() != null ? request.getDiasConsecutivos() : false)
+            .quantidadeDias(request.getQuantidadeDias())
             .status(StatusSolicitacao.ABERTO);
         
         // Adiciona anexo se fornecido
@@ -199,6 +201,8 @@ public class SolicitacaoService {
             .anexoTipo(solicitacao.getAnexoTipo())
             .anexoTamanho(solicitacao.getAnexoTamanho())
             .temAnexo(solicitacao.getAnexoConteudo() != null && solicitacao.getAnexoConteudo().length > 0)
+            .diasConsecutivos(solicitacao.getDiasConsecutivos())
+            .quantidadeDias(solicitacao.getQuantidadeDias())
             .createdAt(solicitacao.getCreatedAt())
             .updatedAt(solicitacao.getUpdatedAt())
             .build();

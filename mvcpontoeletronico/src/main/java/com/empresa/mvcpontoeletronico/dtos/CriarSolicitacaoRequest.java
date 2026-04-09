@@ -37,4 +37,9 @@ public class CriarSolicitacaoRequest {
     private String anexoTipo;
     private Long anexoTamanho;
     private byte[] anexoConteudo;
+    
+    // Campos para dias consecutivos
+    @Builder.Default
+    private Boolean diasConsecutivos = false;
+    private Integer quantidadeDias;
 }
