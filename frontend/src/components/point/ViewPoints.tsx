@@ -80,8 +80,8 @@ const ViewPoints: React.FC = () => {
 
   const [tabValue, setTabValue] = useState(0);
   const [filtros, setFiltros] = useState<FiltrosPontos>({
-    dataInicio: format(new Date(), 'yyyy-MM-dd'),
-    dataFim: format(new Date(), 'yyyy-MM-dd')
+    dataInicio: dayjs().format('YYYY-MM-DD'),
+    dataFim: dayjs().format('YYYY-MM-DD')
   });
   const [relatorioLocal, setRelatorioLocal] = useState<{
     totalHoras: string;
@@ -320,8 +320,10 @@ const ViewPoints: React.FC = () => {
     const grupos: Map<string, PontoAgrupado> = new Map();
     
     pontosHook.data.forEach(ponto => {
-      const dataStr = format(new Date(ponto.dataHora), 'yyyy-MM-dd');
-      const horaStr = format(new Date(ponto.dataHora), 'HH:mm');
+      // Melhorar tratamento da data para evitar problemas de timezone
+      const dataObj = new Date(ponto.dataHora);
+      const dataStr = format(dataObj, 'yyyy-MM-dd');
+      const horaStr = format(dataObj, 'HH:mm');
       
       if (!grupos.has(dataStr)) {
         grupos.set(dataStr, {
@@ -483,7 +485,7 @@ const ViewPoints: React.FC = () => {
                     label="Data Início"
                     value={dayjs(filtros.dataInicio)}
                     onChange={(newValue) => {
-                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
+                      const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
                       setFiltros(prev => ({ ...prev, dataInicio: formattedDate }));
                     }}
                     format="DD/MM/YYYY"
@@ -498,7 +500,7 @@ const ViewPoints: React.FC = () => {
                     label="Data Fim"
                     value={dayjs(filtros.dataFim)}
                     onChange={(newValue) => {
-                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
+                      const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
                       setFiltros(prev => ({ ...prev, dataFim: formattedDate }));
                     }}
                     format="DD/MM/YYYY"
@@ -615,7 +617,7 @@ const ViewPoints: React.FC = () => {
                     label="Data Início"
                     value={dayjs(filtros.dataInicio)}
                     onChange={(newValue) => {
-                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
+                      const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
                       setFiltros(prev => ({ ...prev, dataInicio: formattedDate }));
                     }}
                     format="DD/MM/YYYY"
@@ -630,7 +632,7 @@ const ViewPoints: React.FC = () => {
                     label="Data Fim"
                     value={dayjs(filtros.dataFim)}
                     onChange={(newValue) => {
-                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
+                      const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
                       setFiltros(prev => ({ ...prev, dataFim: formattedDate }));
                     }}
                     format="DD/MM/YYYY"

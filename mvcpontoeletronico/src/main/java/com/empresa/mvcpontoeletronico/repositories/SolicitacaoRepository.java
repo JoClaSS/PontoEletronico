@@ -19,15 +19,15 @@ import java.util.UUID;
 public interface SolicitacaoRepository extends JpaRepository<Solicitacao, UUID> {
     
     /**
-     * Busca todas as solicitações de um usuário ordenadas por data de criação (mais recente primeiro)
+     * Busca todas as solicitações de um usuário ordenadas por data de referência (mais recente primeiro)
      */
-    @Query("SELECT s FROM Solicitacao s WHERE s.usuario.id = :usuarioId ORDER BY s.createdAt DESC")
-    List<Solicitacao> findByUsuarioIdOrderByCreatedAtDesc(@Param("usuarioId") UUID usuarioId);
+    @Query("SELECT s FROM Solicitacao s WHERE s.usuario.id = :usuarioId ORDER BY s.dataReferencia DESC")
+    List<Solicitacao> findByUsuarioIdOrderByDataReferenciaDesc(@Param("usuarioId") UUID usuarioId);
     
     /**
      * Busca solicitações de um usuário por status
      */
-    @Query("SELECT s FROM Solicitacao s WHERE s.usuario.id = :usuarioId AND s.status = :status ORDER BY s.createdAt DESC")
+    @Query("SELECT s FROM Solicitacao s WHERE s.usuario.id = :usuarioId AND s.status = :status ORDER BY s.dataReferencia DESC")
     List<Solicitacao> findByUsuarioIdAndStatus(@Param("usuarioId") UUID usuarioId, @Param("status") StatusSolicitacao status);
     
     /**
@@ -46,10 +46,15 @@ public interface SolicitacaoRepository extends JpaRepository<Solicitacao, UUID> 
     Long countByStatus(@Param("status") StatusSolicitacao status);
     
     /**
-     * Busca todas as solicitações ordenadas por data de criação
+     * Busca a solicitação mais recente por status (baseado na data de referência)
      */
-    @Query("SELECT s FROM Solicitacao s ORDER BY s.createdAt DESC")
-    List<Solicitacao> findAllOrderByCreatedAtDesc();
+    List<Solicitacao> findTop1ByStatusOrderByDataReferenciaDesc(StatusSolicitacao status);
+    
+    /**
+     * Busca todas as solicitações ordenadas por data de referência
+     */
+    @Query("SELECT s FROM Solicitacao s ORDER BY s.dataReferencia DESC")
+    List<Solicitacao> findAllOrderByDataReferenciaDesc();
     
     /**
      * Verifica se já existe uma solicitação para um usuário numa data específica com status específico

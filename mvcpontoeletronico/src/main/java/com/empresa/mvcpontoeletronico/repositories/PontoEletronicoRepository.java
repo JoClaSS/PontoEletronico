@@ -24,7 +24,7 @@ public interface PontoEletronicoRepository extends JpaRepository<PontoEletronico
      * Retorna o registro único do dia (pode ter várias colunas preenchidas)
      */
     @Query("SELECT p FROM PontoEletronico p WHERE p.usuario.id = :usuarioId " +
-           "AND CAST(p.createdAt AS date) = :data")
+           "AND p.data = :data")
     Optional<PontoEletronico> findByUsuarioIdAndData(@Param("usuarioId") UUID usuarioId, 
                                                    @Param("data") LocalDate data);
     
@@ -32,8 +32,8 @@ public interface PontoEletronicoRepository extends JpaRepository<PontoEletronico
      * Busca registros por usuário em um período
      */
     @Query("SELECT p FROM PontoEletronico p WHERE p.usuario.id = :usuarioId " +
-           "AND CAST(p.createdAt AS date) BETWEEN :dataInicio AND :dataFim " +
-           "ORDER BY p.createdAt ASC")
+           "AND p.data BETWEEN :dataInicio AND :dataFim " +
+           "ORDER BY p.data ASC")
     List<PontoEletronico> findByUsuarioIdAndPeriodo(@Param("usuarioId") UUID usuarioId,
                                                     @Param("dataInicio") LocalDate dataInicio,
                                                     @Param("dataFim") LocalDate dataFim);

@@ -108,6 +108,7 @@ public class PontoEletronicoService {
             // Cria novo registro
             pontoRegistro = PontoEletronico.builder()
                 .usuario(usuario)
+                .data(data)  // Define a data de referência
                 .entrada1(dataHora) // Primeiro registro sempre é entrada1
                 .localizacao(request.getLocalizacao()) 
                 .observacao(request.getObservacao())
@@ -418,6 +419,7 @@ public class PontoEletronicoService {
             // Cria novo registro se não existir
             registro = PontoEletronico.builder()
                 .usuario(usuario)
+                .data(data)  // Define a data de referência
                 .build();
             isNovoRegistro = true;
             log.debug("Criando novo registro para a data {}", data);

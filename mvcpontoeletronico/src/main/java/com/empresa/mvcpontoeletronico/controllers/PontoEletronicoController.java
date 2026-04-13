@@ -72,6 +72,7 @@ public class PontoEletronicoController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim) {
         
         log.debug("GET /api/pontos/usuario/{}/periodo - Período: {} a {}", usuarioId, dataInicio, dataFim);
+        
         try {
             List<PontoEletronicoResponse> pontos = pontoService.consultarPontosPorPeriodo(usuarioId, dataInicio, dataFim);
             return ResponseEntity.ok(pontos);

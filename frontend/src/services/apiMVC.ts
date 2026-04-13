@@ -172,6 +172,16 @@ export const apiMVCService = {
     await apiMVC.delete(`/api/solicitacoes/${solicitacaoId}`);
   },
 
+  async contarSolicitacoesEmAberto(): Promise<{ quantidade: number }> {
+    const response = await apiMVC.get<{ quantidade: number }>('/api/solicitacoes/contagem/abertas');
+    return response.data;
+  },
+
+  async buscarSolicitacaoMaisRecenteAberta(): Promise<{ solicitacao: any | null }> {
+    const response = await apiMVC.get<{ solicitacao: any | null }>('/api/solicitacoes/recente/aberta');
+    return response.data;
+  },
+
   async getPontosPorData(usuarioId: string, data: string): Promise<PontoEletronico[]> {
     const response = await apiMVC.get(`/api/pontos/usuario/${usuarioId}?data=${data}`);
     return response.data.map(mapMVCResponseToFrontend);

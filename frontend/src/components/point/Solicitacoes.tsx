@@ -102,6 +102,10 @@ const Solicitacoes: React.FC = () => {
 
   // Estados para dias consecutivos
   const [diasConsecutivos, setDiasConsecutivos] = useState<boolean>(false);
+  
+  // Estado para contagem de solicitações em aberto (apenas para admin/master)
+  const [solicitacoesEmAberto, setSolicitacoesEmAberto] = useState<number>(0);
+  const [solicitacaoMaisRecente, setSolicitacaoMaisRecente] = useState<Solicitacao | null>(null);
 
   // Carrega usuários na inicialização
   useEffect(() => {
@@ -109,6 +113,7 @@ const Solicitacoes: React.FC = () => {
       usuariosHook.loadUsuarios();
     }
     carregarMotivos();
+    carregarContagemSolicitacoesEmAberto();
     
     // Se for funcionário, encontra seu próprio usuário e seleciona automaticamente
     if (!isAdmin() && !isMaster() && userProfile && usuarios.length > 0) {
@@ -146,6 +151,22 @@ const Solicitacoes: React.FC = () => {
       setMotivos(data);
     } catch (error) {
       console.error('Erro ao carregar motivos:', error);
+    }
+  };
+
+  const carregarContagemSolicitacoesEmAberto = async () => {
+    if (!(isAdmin() || isMaster())) return;
+    
+    try {
+      const { apiMVCService } = await import('../../services/apiMVC');
+      const [contagemData, recenteData] = await Promise.all([
+        apiMVCService.contarSolicitacoesEmAberto(),
+        apiMVCService.buscarSolicitacaoMaisRecenteAberta()
+      ]);
+      setSolicitacoesEmAberto(contagemData.quantidade);
+      setSolicitacaoMaisRecente(recenteData.solicitacao);
+    } catch (error) {
+      console.error('Erro ao carregar dados de solicitações em aberto:', error);
     }
   };
 
@@ -279,6 +300,7 @@ const Solicitacoes: React.FC = () => {
       });
       handleFecharDialog();
       carregarSolicitacoes();
+      carregarContagemSolicitacoesEmAberto();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -420,6 +442,7 @@ const Solicitacoes: React.FC = () => {
       setModalResolucao(false);
       handleLimparSelecao();
       carregarSolicitacoes();
+      carregarContagemSolicitacoesEmAberto();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -471,6 +494,7 @@ const Solicitacoes: React.FC = () => {
       setModalConfirmacao(false);
       handleLimparSelecao();
       carregarSolicitacoes();
+      carregarContagemSolicitacoesEmAberto();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -557,6 +581,72 @@ const Solicitacoes: React.FC = () => {
         Solicitações
       </Typography>
 
+      {/* Aviso de solicitações em aberto - apenas para admin/master */}
+      {(isAdmin() || isMaster()) && solicitacaoMaisRecente && (
+        <Alert 
+          severity="warning"
+          sx={{ mb: 2 }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+              Solicitação mais recente em aberto ({solicitacoesEmAberto} total{solicitacoesEmAberto > 1 ? '' : ''})
+            </Typography>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Typography variant="body2">
+                <strong>Data:</strong> {format(parseISO(solicitacaoMaisRecente.dataReferencia + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Usuário:</strong> {solicitacaoMaisRecente.nomeUsuario}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Motivo:</strong> {solicitacaoMaisRecente.motivo.descricao}
+              </Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ViewIcon />}
+                onClick={() => {
+                  setSolicitacaoSelecionada(solicitacaoMaisRecente);
+                  setModalVisualizacao(true);
+                }}
+              >
+                Visualizar
+              </Button>
+              
+              <Button
+                size="small"
+                variant="contained"
+                color="success"
+                startIcon={<CheckIcon />}
+                onClick={() => {
+                  setSolicitacaoSelecionada(solicitacaoMaisRecente);
+                  setModalResolucao(true);
+                }}
+              >
+                Resolver
+              </Button>
+              
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<CancelIcon />}
+                onClick={() => {
+                  setSolicitacaoSelecionada(solicitacaoMaisRecente);
+                  setModalConfirmacao(true);
+                }}
+              >
+                Cancelar
+              </Button>
+            </Box>
+          </Box>
+        </Alert>
+      )}
+
       {/* Seleção de Usuário */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -625,7 +715,13 @@ const Solicitacoes: React.FC = () => {
                     <DatePicker
                       label="Data Inicial"
                       value={dataInicial}
-                      onChange={(newValue) => setDataInicial(newValue)}
+                      onChange={(newValue) => {
+                        if (newValue) {
+                          setDataInicial(newValue instanceof Date ? newValue : new Date(newValue.toString()));
+                        } else {
+                          setDataInicial(null);
+                        }
+                      }}
                       format="dd/MM/yyyy"
                       slotProps={{
                         textField: {
@@ -637,7 +733,13 @@ const Solicitacoes: React.FC = () => {
                     <DatePicker
                       label="Data Final"
                       value={dataFinal}
-                      onChange={(newValue) => setDataFinal(newValue)}
+                      onChange={(newValue) => {
+                        if (newValue) {
+                          setDataFinal(newValue instanceof Date ? newValue : new Date(newValue.toString()));
+                        } else {
+                          setDataFinal(null);
+                        }
+                      }}
                       format="dd/MM/yyyy"
                       slotProps={{
                         textField: {
@@ -851,7 +953,13 @@ const Solicitacoes: React.FC = () => {
               <DatePicker
                 label="Data de Referência *"
                 value={dataReferencia}
-                onChange={(newValue) => setDataReferencia(newValue)}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    setDataReferencia(newValue instanceof Date ? newValue : new Date(newValue.toString()));
+                  } else {
+                    setDataReferencia(null);
+                  }
+                }}
                 maxDate={new Date()}
                 format="dd/MM/yyyy"
                 slotProps={{
