@@ -23,6 +23,10 @@ public class CriarUsuarioRequest {
     @Size(max = 150, message = "Email deve ter no máximo 150 caracteres")
     private String email;
     
+    @NotBlank(message = "Senha é obrigatória")
+    @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+    private String senha;
+    
     @NotBlank(message = "CPF é obrigatório")
     @Size(max = 14, message = "CPF deve ter formato XXX.XXX.XXX-XX")
     private String cpf;

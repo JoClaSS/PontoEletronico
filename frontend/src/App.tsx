@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { ptBR } from '@mui/material/locale';
-import { KeycloakProvider, useKeycloak } from './contexts/KeycloakContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppProvider } from './contexts/AppContext';
 import Layout from './components/layout/Layout';
 import Login from './components/auth/Login';
@@ -28,9 +28,9 @@ const theme = createTheme(
   ptBR // Localização em português
 );
 
-// Componente interno que usa o contexto do Keycloak
+// Componente interno que usa o contexto de autenticação
 const AppContent: React.FC = () => {
-  const { isAuthenticated } = useKeycloak();
+  const { isAuthenticated } = useAuth();
 
   // Se não estiver autenticado, mostra a tela de login
   if (!isAuthenticated) {
@@ -60,9 +60,9 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <KeycloakProvider>
+      <AuthProvider>
         <AppContent />
-      </KeycloakProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

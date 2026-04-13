@@ -24,6 +24,7 @@ import type { CriarUsuarioRequest, RoleType } from '../../types';
 interface FormData {
   nome: string;
   email: string;
+  senha: string;
   cpf: string;
   role: RoleType;
 }
@@ -35,6 +36,7 @@ const RegisterUser: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     email: '',
+    senha: '',
     cpf: '',
     role: 'FUNCIONARIO'
   });
@@ -97,6 +99,14 @@ const RegisterUser: React.FC = () => {
       return 'Email deve ter um formato válido';
     }
 
+    if (!formData.senha.trim()) {
+      return 'Senha é obrigatória';
+    }
+
+    if (formData.senha.length < 6) {
+      return 'Senha deve ter no mínimo 6 caracteres';
+    }
+
     if (!formData.cpf.trim()) {
       return 'CPF é obrigatório';
     }
@@ -147,6 +157,7 @@ const RegisterUser: React.FC = () => {
       const userData: CriarUsuarioRequest = {
         nome: formData.nome.trim(),
         email: formData.email.trim(),
+        senha: formData.senha.trim(),
         cpf: formData.cpf.replace(/\D/g, ''),
         role: formData.role
       };
@@ -155,7 +166,7 @@ const RegisterUser: React.FC = () => {
 
       setSnackbar({ 
         open: true, 
-        message: 'Usuário criado com sucesso! A senha inicial é o CPF (será necessário alterar no primeiro login).', 
+        message: 'Usuário criado com sucesso!', 
         severity: 'success' 
       });
 
@@ -163,6 +174,7 @@ const RegisterUser: React.FC = () => {
       setFormData({
         nome: '',
         email: '',
+        senha: '',
         cpf: '',
         role: 'FUNCIONARIO'
       });
@@ -182,6 +194,7 @@ const RegisterUser: React.FC = () => {
     setFormData({
       nome: '',
       email: '',
+      senha: '',
       cpf: '',
       role: 'FUNCIONARIO'
     });
@@ -227,8 +240,20 @@ const RegisterUser: React.FC = () => {
                 </Box>
               </Box>
 
-              {/* Linha 2: CPF e Role */}
+              {/* Linha 2: Senha e CPF */}
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ flex: 1, minWidth: 280 }}>
+                  <TextField
+                    fullWidth
+                    label="Senha"
+                    type="password"
+                    value={formData.senha}
+                    onChange={handleInputChange('senha')}
+                    required
+                    variant="outlined"
+                    helperText="Mínimo 6 caracteres"
+                  />
+                </Box>
                 <Box sx={{ flex: 1, minWidth: 280 }}>
                   <TextField
                     fullWidth
@@ -241,7 +266,11 @@ const RegisterUser: React.FC = () => {
                     inputProps={{ maxLength: 14 }}
                   />
                 </Box>
-                <Box sx={{ flex: 1, minWidth: 280 }}>
+              </Box>
+
+              {/* Linha 3: Role */}
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ flex: 1, maxWidth: 300 }}>
                   <FormControl fullWidth required>
                     <InputLabel>Role</InputLabel>
                     <Select
@@ -255,14 +284,6 @@ const RegisterUser: React.FC = () => {
                   </FormControl>
                 </Box>
               </Box>
-
-              {/* Nota informativa sobre a senha */}
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  <strong>Informação:</strong> A senha inicial do usuário será o CPF informado e será marcada como temporária. 
-                  O usuário será obrigado a alterar a senha no primeiro acesso ao sistema.
-                </Typography>
-              </Alert>
 
               {/* Botões de ação */}
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>

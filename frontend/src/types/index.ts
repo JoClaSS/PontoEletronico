@@ -38,6 +38,7 @@ export interface Usuario {
 export interface CriarUsuarioRequest {
   nome: string;
   email: string;
+  senha: string;
   cpf: string;
   role: RoleType;
 }

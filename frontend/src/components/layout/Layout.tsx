@@ -19,14 +19,14 @@ import {
   AdminPanelSettings as AdminIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
-import { useKeycloak } from '../../contexts/KeycloakContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/apiService';
 import type { ConfiguracaoEmpresa } from '../../types';
 
 const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { userProfile, logout, isAdmin, isMaster } = useKeycloak();
+  const { user, logout, isAdmin } = useAuth();
   const [logoEmpresa, setLogoEmpresa] = useState<string | null>(null);
   const [nomeEmpresa, setNomeEmpresa] = useState<string>('Mundial Ciclo');
 
@@ -196,7 +196,7 @@ const Layout: React.FC = () => {
             )}
 
             {/* Usuário Logado e Status de Admin */}
-            {userProfile && (
+            {user && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
                 {/* Nome do usuário */}
                 <Typography 
@@ -206,18 +206,18 @@ const Layout: React.FC = () => {
                     color: 'rgba(255, 255, 255, 0.9)'
                   }}
                 >
-                  Olá, {userProfile.firstName || userProfile.username}
+                  Olá, {user.nome.split(' ')[0]}
                 </Typography>
                 
-                {/* Badge de Admin/Master */}
-                {(isAdmin() || isMaster()) && (
+                {/* Badge de Admin */}
+                {isAdmin() && (
                   <Chip
                     icon={<AdminIcon />}
-                    label={isMaster() ? "Master" : "Admin"}
+                    label="Admin"
                     size="small"
                     sx={{
-                      backgroundColor: isMaster() ? 'rgba(156, 39, 176, 0.2)' : 'rgba(255, 193, 7, 0.2)',
-                      color: isMaster() ? '#9c27b0' : '#ffc107',
+                      backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                      color: '#ffc107',
                       border: `1px solid ${isMaster() ? 'rgba(156, 39, 176, 0.3)' : 'rgba(255, 193, 7, 0.3)'}`,
                       display: { xs: 'none', sm: 'flex' }
                     }}

@@ -41,6 +41,11 @@ public class Usuario {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
     
+    @NotBlank(message = "Senha é obrigatória")
+    @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+    @Column(name = "senha", nullable = false)
+    private String senha;
+    
     @NotBlank(message = "CPF é obrigatório")
     @Size(max = 14, message = "CPF deve ter formato XXX.XXX.XXX-XX")
     @Column(name = "cpf", nullable = false, unique = true)

@@ -7,13 +7,13 @@ import com.empresa.mvcpontoeletronico.entities.RoleType;
 import com.empresa.mvcpontoeletronico.repositories.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.Collections;
 
 /**
  * Service para gerenciamento de usuários
@@ -26,7 +26,7 @@ import java.util.Collections;
 public class UsuarioService {
     
     private final UsuarioRepository usuarioRepository;
-    private final KeycloakAdminService keycloakAdminService;
+    private final PasswordEncoder passwordEncoder;
     
     /**
      * Lista todos os usuários
@@ -40,7 +40,7 @@ public class UsuarioService {
     }
     
     /**
-     * Cria um novo usuário e integra com Keycloak
+     * Cria um novo usuário
      */
     @Transactional
     public UsuarioResponse criarUsuario(CriarUsuarioRequest request) {
@@ -56,31 +56,17 @@ public class UsuarioService {
         }
         
         try {
-            // Separar nome e sobrenome
-            String[] nomeParts = request.getNome().trim().split("\\s+", 2);
-            String firstName = nomeParts[0];
-            String lastName = nomeParts.length > 1 ? nomeParts[1] : "";
-            
-            // Criar usuário no Keycloak primeiro
-            String keycloakId = keycloakAdminService.createUser(
-                request.getEmail(),
-                request.getCpf(),
-                firstName,
-                lastName,
-                request.getRole().getValue()
-            );
-            
-            // Criar usuário no banco com mesmo ID do Keycloak
+            // Criar usuário no banco com senha hasheada
             Usuario usuario = Usuario.builder()
-                    .id(UUID.fromString(keycloakId))
                     .nome(request.getNome())
                     .email(request.getEmail())
+                    .senha(passwordEncoder.encode(request.getSenha()))
                     .cpf(request.getCpf())
                     .role(request.getRole())
                     .build();
             
             Usuario usuarioSalvo = usuarioRepository.save(usuario);
-            log.info("Usuário criado com sucesso: {} (Keycloak ID: {})", usuarioSalvo.getNome(), keycloakId);
+            log.info("Usuário criado com sucesso: {}", usuarioSalvo.getNome());
             
             return toResponse(usuarioSalvo);
             
@@ -164,32 +150,16 @@ public class UsuarioService {
         }
         
         try {
-            // Separar nome e sobrenome
-            String[] nomeParts = request.getNome().trim().split("\\s+", 2);
-            String firstName = nomeParts[0];
-            String lastName = nomeParts.length > 1 ? nomeParts[1] : "";
-            
-            // Atualizar no Keycloak
-            keycloakAdminService.updateUser(
-                id.toString(),
-                request.getEmail(),
-                firstName,
-                lastName
-            );
-            
-            // Atualizar roles se mudaram
-            if (!usuarioExistente.getRole().equals(request.getRole())) {
-                keycloakAdminService.updateUserRoles(
-                    id.toString(),
-                    Collections.singletonList(request.getRole().getValue())
-                );
-            }
-            
             // Atualizar no banco
             usuarioExistente.setNome(request.getNome());
             usuarioExistente.setEmail(request.getEmail());
             usuarioExistente.setCpf(request.getCpf());
             usuarioExistente.setRole(request.getRole());
+            
+            // Atualizar senha se fornecida
+            if (request.getSenha() != null && !request.getSenha().trim().isEmpty()) {
+                usuarioExistente.setSenha(passwordEncoder.encode(request.getSenha()));
+            }
             
             Usuario usuarioAtualizado = usuarioRepository.save(usuarioExistente);
             log.info("Usuário atualizado com sucesso: {}", usuarioAtualizado.getNome());
@@ -214,10 +184,6 @@ public class UsuarioService {
         }
         
         try {
-            // Remover do Keycloak
-            keycloakAdminService.deleteUser(id.toString());
-            
-            // Remover do banco
             usuarioRepository.deleteById(id);
             log.info("Usuário removido com sucesso: {}", id);
             
@@ -257,33 +223,13 @@ public class UsuarioService {
             throw new IllegalArgumentException("Usuário já está desativado");
         }
         
-        boolean keycloakSuccess = true;
-        String keycloakError = null;
-        
-        // Tenta desabilitar no Keycloak, mas não falha se der erro
         try {
-            keycloakAdminService.disableUser(id.toString());
-            log.info("Usuário desabilitado com sucesso no Keycloak: {}", id);
-        } catch (Exception e) {
-            keycloakSuccess = false;
-            keycloakError = e.getMessage();
-            log.warn("Falha ao desabilitar usuário no Keycloak (continuando com desativação local): {}", e.getMessage());
-        }
-        
-        try {
-            // Sempre desativa no banco, independentemente do resultado do Keycloak
             usuario.setAtivo(false);
             usuarioRepository.save(usuario);
-            
-            if (keycloakSuccess) {
-                log.info("Usuário desativado com sucesso: {} (ID: {})", usuario.getNome(), id);
-            } else {
-                log.info("Usuário desativado no banco local: {} (ID: {}). Aviso: falha no Keycloak - {}", 
-                        usuario.getNome(), id, keycloakError);
-            }
+            log.info("Usuário desativado com sucesso: {} (ID: {})", usuario.getNome(), id);
             
         } catch (Exception e) {
-            log.error("Erro crítico ao desativar usuário no banco: {}", e.getMessage());
+            log.error("Erro ao desativar usuário: {}", e.getMessage());
             throw new RuntimeException("Erro ao desativar usuário: " + e.getMessage());
         }
     }
@@ -302,24 +248,13 @@ public class UsuarioService {
             throw new IllegalArgumentException("Usuário já está ativo");
         }
         
-        // Primeiro reativa no banco
         try {
             usuario.setAtivo(true);
             usuarioRepository.save(usuario);
-            log.info("Usuário reativado no banco: {} (ID: {})", usuario.getNome(), id);
+            log.info("Usuário reativado com sucesso: {} (ID: {})", usuario.getNome(), id);
         } catch (Exception e) {
-            log.error("Erro ao reativar usuário no banco: {}", e.getMessage());
-            throw new RuntimeException("Erro ao reativar usuário no banco: " + e.getMessage());
-        }
-        
-        // Depois tenta habilitar no Keycloak
-        try {
-            keycloakAdminService.enableUser(id.toString());
-            log.info("Usuário reativado com sucesso no Keycloak: {} (ID: {})", usuario.getNome(), id);
-        } catch (Exception e) {
-            log.error("Erro ao habilitar usuário no Keycloak (usuário já foi reativado no banco): {}", e.getMessage());
-            // Não relança a exceção para não falhar a operação, mas registra o erro
-            // The user is active in the database, which is the most important part
+            log.error("Erro ao reativar usuário: {}", e.getMessage());
+            throw new RuntimeException("Erro ao reativar usuário: " + e.getMessage());
         }
     }
 }

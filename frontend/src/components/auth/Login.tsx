@@ -6,7 +6,6 @@ import {
   Typography,
   Button,
   Container,
-  Divider,
   TextField,
   Alert,
   CircularProgress,
@@ -21,22 +20,21 @@ import {
   Visibility,
   VisibilityOff
 } from '@mui/icons-material';
-import { useKeycloak } from '../../contexts/KeycloakContext';
-import keycloakService from '../../services/keycloakService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { refreshAuthState } = useKeycloak();
+  const { login } = useAuth();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username.trim() || !password.trim()) {
+    if (!email.trim() || !password.trim()) {
       setError('Por favor, preencha todos os campos');
       return;
     }
@@ -45,17 +43,10 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      const success = await keycloakService.loginDirect(username.trim(), password);
-      
-      if (success) {
-        // Atualiza o contexto de autenticação
-        refreshAuthState();
-      } else {
-        setError('Usuário ou senha incorretos');
-      }
-    } catch (error) {
-      console.error('Erro no login:', error);
-      setError('Erro ao conectar com o servidor de autenticação');
+      await login(email.trim(), password);
+      // Login bem-sucedido - o contexto vai atualizar automaticamente
+    } catch (error: any) {
+      setError(error.message || 'Erro ao fazer login');
     } finally {
       setLoading(false);
     }
@@ -93,52 +84,33 @@ const Login: React.FC = () => {
                   mb: 2
                 }} 
               />
-              <Typography 
-                variant="h4" 
-                component="h1" 
-                fontWeight="bold"
-                color="primary"
-                gutterBottom
-              >
+              <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
                 Ponto Eletrônico
               </Typography>
-              <Typography 
-                variant="subtitle1" 
-                color="text.secondary"
-                sx={{ mb: 2 }}
-              >
-                Sistema de Controle de Ponto
+              <Typography variant="h6" color="textSecondary">
+                Entre com suas credenciais
               </Typography>
-              
-              <Divider sx={{ my: 3 }} />
             </Box>
 
             {/* Erro */}
             {error && (
-              <Alert 
-                severity="error" 
-                sx={{ mb: 3 }}
-                onClose={() => setError('')}
-              >
+              <Alert severity="error" sx={{ mb: 3 }}>
                 {error}
               </Alert>
             )}
 
-            {/* Form */}
-            <Box 
-              component="form" 
-              onSubmit={handleSubmit}
-              sx={{ width: '100%' }}
-            >
+            {/* Formulário de Login */}
+            <form onSubmit={handleSubmit}>
               <TextField
                 fullWidth
-                label="Usuário ou E-mail"
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                margin="normal"
                 variant="outlined"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={loading}
                 required
-                sx={{ mb: 3 }}
+                disabled={loading}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -146,18 +118,19 @@ const Login: React.FC = () => {
                     </InputAdornment>
                   ),
                 }}
+                sx={{ mb: 2 }}
               />
 
               <TextField
                 fullWidth
                 label="Senha"
                 type={showPassword ? 'text' : 'password'}
-                variant="outlined"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
+                margin="normal"
+                variant="outlined"
                 required
-                sx={{ mb: 4 }}
+                disabled={loading}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -167,7 +140,6 @@ const Login: React.FC = () => {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
-                        aria-label="toggle password visibility"
                         onClick={handleTogglePassword}
                         edge="end"
                         disabled={loading}
@@ -177,67 +149,26 @@ const Login: React.FC = () => {
                     </InputAdornment>
                   ),
                 }}
+                sx={{ mb: 3 }}
               />
 
-              {/* Login Button */}
               <Button
                 type="submit"
+                fullWidth
                 variant="contained"
                 size="large"
-                fullWidth
                 disabled={loading}
-                sx={{
+                startIcon={loading ? <CircularProgress size={20} /> : <LoginIcon />}
+                sx={{ 
                   py: 1.5,
                   fontSize: '1.1rem',
                   fontWeight: 'bold',
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  boxShadow: 3,
-                  '&:hover': {
-                    boxShadow: 6,
-                  }
+                  borderRadius: 2
                 }}
               >
-                {loading ? (
-                  <CircularProgress size={24} color="inherit" sx={{ mr: 1 }} />
-                ) : (
-                  <LoginIcon sx={{ mr: 1 }} />
-                )}
-                {loading ? 'Entrando...' : 'Entrar no Sistema'}
+                {loading ? 'Entrando...' : 'Entrar'}
               </Button>
-
-              {/* Forgot Password Link */}
-              <Box textAlign="center" mt={3}>
-                <Button
-                  variant="text"
-                  size="small"
-                  onClick={() => keycloakService.openResetPassword()}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: '0.9rem',
-                    color: 'primary.main',
-                    '&:hover': {
-                      backgroundColor: 'transparent',
-                      textDecoration: 'underline'
-                    }
-                  }}
-                  disabled={loading}
-                >
-                  Esqueceu a senha?
-                </Button>
-              </Box>
-            </Box>
-
-            {/* Footer */}
-            <Box textAlign="center" mt={4}>
-              <Typography 
-                variant="caption" 
-                color="text.secondary"
-                display="block"
-              >
-                Sistema protegido por autenticação Keycloak
-              </Typography>
-            </Box>
+            </form>
           </CardContent>
         </Card>
       </Box>

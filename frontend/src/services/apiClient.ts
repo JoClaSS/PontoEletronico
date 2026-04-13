@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { BACKEND_CONFIGS } from '../types';
-import keycloakService from './keycloakService';
+import authService from './authService';
 
 // Função para criar instância do axios para um backend específico
 export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
@@ -18,11 +18,11 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
   client.interceptors.request.use(
     (config) => {
       // Debug da autenticação
-      console.log(`[${backendType}] Usuário autenticado:`, keycloakService.isAuthenticated());
+      console.log(`[${backendType}] Usuário autenticado:`, authService.isAuthenticated());
       
       // Adicionar token de autenticação se disponível
-      if (keycloakService.isAuthenticated()) {
-        const token = keycloakService.getToken();
+      if (authService.isAuthenticated()) {
+        const token = authService.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
           console.log(`[${backendType}] Token JWT enviado:`, token.substring(0, 50) + '...');
@@ -57,8 +57,7 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
       // Verifica se é um erro de autenticação
       if (error.response?.status === 401) {
         console.error(`[${backendType}] Token inválido ou expirado (401)`);
-        console.log(`[${backendType}] Debug auth info:`, keycloakService.getDebugInfo());
-        // Não fazer logout automático - deixar o usuário decidir
+        // O authService já faz logout automático em caso de 401
       }
       
       // Verifica se é um erro de conexão
