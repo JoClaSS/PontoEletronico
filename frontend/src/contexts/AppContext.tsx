@@ -16,6 +16,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   
+  // Sistema de notificação para atualizações de pontos
+  const [pontosUpdateTrigger, setPontosUpdateTrigger] = useState<number>(0);
+  
   // Estados de autenticação
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [loggedUser, setLoggedUser] = useState<Usuario | null>(null);
@@ -56,6 +59,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // Função para notificar que pontos foram atualizados
+  const notifyPontosUpdate = () => {
+    setPontosUpdateTrigger(prev => prev + 1);
+  };
+
   const value: AppContextType = {
     selectedUser,
     setSelectedUser,
@@ -68,6 +76,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     loggedUser,
     handleLogin,
     handleLogout,
+    // Sistema de notificação de pontos
+    pontosUpdateTrigger,
+    notifyPontosUpdate,
   };
 
   return (

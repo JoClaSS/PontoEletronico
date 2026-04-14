@@ -30,6 +30,7 @@ export interface Usuario {
   cargo?: string; // apenas no backend Clean
   departamento?: string; // apenas no backend Clean
   ativo?: boolean; // indica se usuário está ativo
+  primeiroLogin?: boolean; // indica se é o primeiro login do usuário
   createdAt?: string;
   updatedAt?: string;
 }
@@ -41,6 +42,13 @@ export interface CriarUsuarioRequest {
   senha: string;
   cpf: string;
   role: RoleType;
+}
+
+// Request para trocar senha
+export interface TrocaSenhaRequest {
+  senhaAtual: string;
+  novaSenha: string;
+  confirmarSenha: string;
 }
 
 // PontoEletronico - estrutura comum
@@ -122,6 +130,9 @@ export interface AppContextType {
   loggedUser: Usuario | null;
   handleLogin: (user: Usuario) => void;
   handleLogout: () => void;
+  // Sistema de notificação de pontos
+  pontosUpdateTrigger: number;
+  notifyPontosUpdate: () => void;
 }
 
 // Filtros para consulta de pontos

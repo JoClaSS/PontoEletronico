@@ -85,13 +85,26 @@ public class UsuarioController {
      */
     @PostMapping
     public ResponseEntity<?> criarUsuario(@Valid @RequestBody CriarUsuarioRequest request) {
-        log.debug("POST /api/usuarios - Criando novo usuário: {}", request.getNome());
+        log.info("POST /api/usuarios - Tentando criar usuário: {} ({})", request.getNome(), request.getEmail());
+        log.debug("Request completo recebido: nome='{}', email='{}', senha='{}', cpf='{}', role='{}'", 
+                request.getNome(), request.getEmail(), 
+                request.getSenha() != null ? "[PRESENTE]" : "[NULL]", 
+                request.getCpf(), request.getRole());
+        
         try {
             UsuarioResponse usuarioCriado = usuarioService.criarUsuario(request);
+            log.info("Usuário criado com sucesso: {} (ID: {})", usuarioCriado.getNome(), usuarioCriado.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(usuarioCriado);
-        } catch (RuntimeException e) {
-            log.warn("Erro ao criar usuário: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.warn("Erro de validação ao criar usuário: {}", e.getMessage());
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Erro ao criar usuário: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erro inesperado ao criar usuário: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Erro interno do servidor"));
         }
     }
     

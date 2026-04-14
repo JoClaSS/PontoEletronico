@@ -24,7 +24,6 @@ import type { CriarUsuarioRequest, RoleType } from '../../types';
 interface FormData {
   nome: string;
   email: string;
-  senha: string;
   cpf: string;
   role: RoleType;
 }
@@ -36,7 +35,6 @@ const RegisterUser: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     email: '',
-    senha: '',
     cpf: '',
     role: 'FUNCIONARIO'
   });
@@ -99,16 +97,13 @@ const RegisterUser: React.FC = () => {
       return 'Email deve ter um formato válido';
     }
 
-    if (!formData.senha.trim()) {
-      return 'Senha é obrigatória';
-    }
-
-    if (formData.senha.length < 6) {
-      return 'Senha deve ter no mínimo 6 caracteres';
-    }
-
     if (!formData.cpf.trim()) {
       return 'CPF é obrigatório';
+    }
+
+    const cpfNumbers = formData.cpf.replace(/\D/g, '');
+    if (cpfNumbers.length !== 11) {
+      return 'CPF deve ter 11 dígitos';
     }
 
     return null;
@@ -153,12 +148,32 @@ const RegisterUser: React.FC = () => {
     setLoading(true);
 
     try {
-      // Prepara dados para o novo endpoint
+      // Prepara dados para o novo endpoint - senha temporária = CPF
+      const cpfNumbers = formData.cpf.replace(/\D/g, '');
+      
+      // Validação local para garantir que CPF não está vazio
+      if (!cpfNumbers || cpfNumbers.length !== 11) {
+        setSnackbar({ 
+          open: true, 
+          message: 'CPF deve ter exatamente 11 dígitos', 
+          severity: 'error' 
+        });
+        return;
+      }
+      
+      console.log('Dados sendo enviados:', {
+        nome: formData.nome.trim(),
+        email: formData.email.trim(), 
+        senha: cpfNumbers,
+        cpf: cpfNumbers,
+        role: formData.role
+      });
+      
       const userData: CriarUsuarioRequest = {
         nome: formData.nome.trim(),
         email: formData.email.trim(),
-        senha: formData.senha.trim(),
-        cpf: formData.cpf.replace(/\D/g, ''),
+        senha: cpfNumbers, // Senha temporária é o CPF
+        cpf: cpfNumbers,
         role: formData.role
       };
 
@@ -166,7 +181,7 @@ const RegisterUser: React.FC = () => {
 
       setSnackbar({ 
         open: true, 
-        message: 'Usuário criado com sucesso!', 
+        message: 'Usuário criado com sucesso! A senha inicial é o CPF (será necessário alterar no primeiro login).', 
         severity: 'success' 
       });
 
@@ -174,7 +189,6 @@ const RegisterUser: React.FC = () => {
       setFormData({
         nome: '',
         email: '',
-        senha: '',
         cpf: '',
         role: 'FUNCIONARIO'
       });
@@ -194,7 +208,6 @@ const RegisterUser: React.FC = () => {
     setFormData({
       nome: '',
       email: '',
-      senha: '',
       cpf: '',
       role: 'FUNCIONARIO'
     });
@@ -240,20 +253,14 @@ const RegisterUser: React.FC = () => {
                 </Box>
               </Box>
 
-              {/* Linha 2: Senha e CPF */}
+              {/* Alerta informativo */}
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <strong>Informação importante:</strong> A senha inicial do usuário será o CPF (somente números). 
+                O usuário deverá alterar a senha no primeiro login.
+              </Alert>
+
+              {/* Linha 2: CPF */}
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Box sx={{ flex: 1, minWidth: 280 }}>
-                  <TextField
-                    fullWidth
-                    label="Senha"
-                    type="password"
-                    value={formData.senha}
-                    onChange={handleInputChange('senha')}
-                    required
-                    variant="outlined"
-                    helperText="Mínimo 6 caracteres"
-                  />
-                </Box>
                 <Box sx={{ flex: 1, minWidth: 280 }}>
                   <TextField
                     fullWidth
@@ -264,6 +271,7 @@ const RegisterUser: React.FC = () => {
                     required
                     variant="outlined"
                     inputProps={{ maxLength: 14 }}
+                    helperText="Será utilizado como senha temporária"
                   />
                 </Box>
               </Box>

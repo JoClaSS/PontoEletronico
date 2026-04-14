@@ -56,26 +56,93 @@ public class UsuarioService {
         }
         
         try {
+            log.info("Iniciando criação de usuário: {} - {}", request.getNome(), request.getEmail());
+            
+            // Define senha como CPF (apenas números) se não fornecida
+            String senhaFinal = request.getSenha();
+            if (senhaFinal == null || senhaFinal.trim().isEmpty()) {
+                senhaFinal = request.getCpf().replaceAll("\\D", ""); // Remove tudo que não é dígito
+                log.debug("Senha não fornecida, usando CPF como senha temporária");
+            }
+            
+            log.debug("CPF original: '{}', CPF para senha: '{}'", request.getCpf(), senhaFinal);
+            
+            // Validação de senha
+            if (senhaFinal.trim().isEmpty()) {
+                throw new IllegalArgumentException("Não foi possível gerar senha a partir do CPF");
+            }
+            
             // Criar usuário no banco com senha hasheada
+            String senhaHash = passwordEncoder.encode(senhaFinal);
+            log.debug("Hash gerado para senha");
+            
             Usuario usuario = Usuario.builder()
                     .nome(request.getNome())
                     .email(request.getEmail())
-                    .senha(passwordEncoder.encode(request.getSenha()))
+                    .senha(senhaHash)
                     .cpf(request.getCpf())
                     .role(request.getRole())
+                    .ativo(true) // Definindo explicitamente como ativo
                     .build();
             
+            log.debug("Salvando usuário no banco...");
             Usuario usuarioSalvo = usuarioRepository.save(usuario);
-            log.info("Usuário criado com sucesso: {}", usuarioSalvo.getNome());
+            log.info("Usuário criado com sucesso: {} (ID: {})", usuarioSalvo.getNome(), usuarioSalvo.getId());
             
             return toResponse(usuarioSalvo);
             
         } catch (Exception e) {
-            log.error("Erro ao criar usuário: {}", e.getMessage());
+            log.error("Erro ao criar usuário: {} - Stacktrace: ", e.getMessage(), e);
             throw new RuntimeException("Erro ao criar usuário: " + e.getMessage());
         }
     }
     
+    /**
+     * Troca a senha do usuário
+     */
+    @Transactional
+    public void trocarSenha(UUID userId, String senhaAtual, String novaSenha, String confirmarSenha) {
+        log.info("Iniciando troca de senha para usuário ID: {}", userId);
+        
+        try {
+            // Buscar usuário
+            Usuario usuario = usuarioRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+
+            // Validar senha atual
+            if (!passwordEncoder.matches(senhaAtual, usuario.getSenha())) {
+                log.warn("Tentativa de troca de senha com senha atual incorreta para usuário: {}", userId);
+                throw new IllegalArgumentException("Senha atual incorreta");
+            }
+
+            // Validar confirmação
+            if (!novaSenha.equals(confirmarSenha)) {
+                throw new IllegalArgumentException("Nova senha e confirmação não coincidem");
+            }
+
+            // Validar nova senha
+            if (novaSenha.length() < 8) {
+                throw new IllegalArgumentException("Nova senha deve ter no mínimo 8 caracteres");
+            }
+
+            if (!novaSenha.matches("^(?=.*[a-zA-Z])(?=.*\\d).+$")) {
+                throw new IllegalArgumentException("Nova senha deve conter pelo menos uma letra e um número");
+            }
+
+            // Atualizar senha
+            String novaSenhaHash = passwordEncoder.encode(novaSenha);
+            usuario.setSenha(novaSenhaHash);
+            usuario.setPrimeiroLogin(false); // Não é mais primeiro login
+            
+            usuarioRepository.save(usuario);
+            log.info("Senha alterada com sucesso para usuário: {}", usuario.getNome());
+            
+        } catch (Exception e) {
+            log.error("Erro ao trocar senha para usuário {}: {}", userId, e.getMessage(), e);
+            throw new RuntimeException("Erro ao trocar senha: " + e.getMessage());
+        }
+    }
+
     /**
      * Busca usuário por ID
      */
@@ -204,6 +271,7 @@ public class UsuarioService {
                 .cpf(usuario.getCpf())
                 .role(usuario.getRole())
                 .ativo(usuario.getAtivo())
+                .primeiroLogin(usuario.getPrimeiroLogin())
                 .createdAt(usuario.getCreatedAt())
                 .updatedAt(usuario.getUpdatedAt())
                 .build();

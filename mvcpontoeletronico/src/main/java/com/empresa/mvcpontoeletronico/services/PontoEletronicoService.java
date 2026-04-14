@@ -33,7 +33,7 @@ public class PontoEletronicoService {
     private final PontoEletronicoRepository pontoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ConfiguracaoEmpresaService configuracaoService;
-    private static final int INTERVALO_MINIMO_MINUTOS = 10; // 0 = desabilitado para facilitar testes
+    private static final int INTERVALO_MINIMO_MINUTOS = 0; // Desabilitado - apenas validação de ordem cronológica
     
     /**
      * Registra um novo ponto eletrônico com a nova lógica:
@@ -82,16 +82,22 @@ public class PontoEletronicoService {
                 throw new IllegalArgumentException("Limite máximo de 6 registros por dia já atingido (3 entradas + 3 saídas)");
             }
             
+            // Valida ordem cronológica - novo registro deve ser após o último
+            LocalDateTime ultimoRegistro = getUltimoRegistroDoUsuario(pontoRegistro);
+            if (ultimoRegistro != null && dataHora.isBefore(ultimoRegistro)) {
+                log.warn("Tentativa de registrar ponto fora de ordem cronológica. Último: {}, Atual: {}", 
+                    ultimoRegistro, dataHora);
+                throw new IllegalArgumentException("O horário do ponto deve ser posterior ao último registro (" + 
+                    ultimoRegistro.toLocalTime() + ")");
+            }
+            
             // Valida intervalo mínimo se habilitado
-            if (INTERVALO_MINIMO_MINUTOS > 0) {
-                LocalDateTime ultimoRegistro = getUltimoRegistroDoUsuario(pontoRegistro);
-                if (ultimoRegistro != null) {
-                    long minutosDecorridos = java.time.Duration.between(ultimoRegistro, dataHora).toMinutes();
-                    if (minutosDecorridos < INTERVALO_MINIMO_MINUTOS) {
-                        log.warn("Intervalo insuficiente entre registros. Último: {}, Atual: {}, Decorridos: {} min", 
-                            ultimoRegistro, dataHora, minutosDecorridos);
-                        throw new IllegalArgumentException("Deve haver um intervalo mínimo de " + INTERVALO_MINIMO_MINUTOS + " minuto(s) entre registros");
-                    }
+            if (INTERVALO_MINIMO_MINUTOS > 0 && ultimoRegistro != null) {
+                long minutosDecorridos = java.time.Duration.between(ultimoRegistro, dataHora).toMinutes();
+                if (minutosDecorridos < INTERVALO_MINIMO_MINUTOS) {
+                    log.warn("Intervalo insuficiente entre registros. Último: {}, Atual: {}, Decorridos: {} min", 
+                        ultimoRegistro, dataHora, minutosDecorridos);
+                    throw new IllegalArgumentException("Deve haver um intervalo mínimo de " + INTERVALO_MINIMO_MINUTOS + " minuto(s) entre registros");
                 }
             }
             

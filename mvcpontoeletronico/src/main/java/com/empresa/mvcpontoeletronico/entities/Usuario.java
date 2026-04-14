@@ -60,6 +60,10 @@ public class Usuario {
     @Builder.Default
     private Boolean ativo = true;
     
+    @Column(name = "primeiro_login", nullable = false)
+    @Builder.Default
+    private Boolean primeiroLogin = true;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

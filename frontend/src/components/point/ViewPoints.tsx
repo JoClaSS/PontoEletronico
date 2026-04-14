@@ -38,7 +38,7 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
-import { useKeycloak } from '../../contexts/KeycloakContext';
+import { useAuth } from '../../contexts/AuthContext';
 import type { FiltrosPontos, PontoAgrupado } from '../../types';
 
 // Configurar dayjs para português
@@ -71,9 +71,9 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const ViewPoints: React.FC = () => {
-  const { selectedUser, setSelectedUser, usuarios, setUsuarios } = useAppContext();
+  const { selectedUser, setSelectedUser, usuarios, setUsuarios, pontosUpdateTrigger } = useAppContext();
   const { useUsuarios, usePontos, useRelatorios } = useApi();
-  const { userProfile, isAdmin, isMaster } = useKeycloak();
+  const { user, isAdmin, isFuncionario } = useAuth();
   const usuariosHook = useUsuarios();
   const pontosHook = usePontos(selectedUser?.id);
   const relatoriosHook = useRelatorios();
@@ -96,13 +96,13 @@ const ViewPoints: React.FC = () => {
     }
     
     // Se for funcionário, encontra seu próprio usuário e seleciona automaticamente
-    if (!isAdmin() && !isMaster() && userProfile && usuarios.length > 0) {
-      const usuarioLogado = usuarios.find(u => u.email === userProfile.email);
+    if (isFuncionario() && user && usuarios.length > 0) {
+      const usuarioLogado = usuarios.find(u => u.email === user.email);
       if (usuarioLogado && !selectedUser) {
         setSelectedUser(usuarioLogado);
       }
     }
-  }, [usuarios.length, userProfile, isAdmin, isMaster]);
+  }, [usuarios.length, user, isAdmin, isFuncionario]);
 
   // Atualiza lista de usuários no contexto quando carregados
   useEffect(() => {
@@ -142,6 +142,14 @@ const ViewPoints: React.FC = () => {
   useEffect(() => {
     setRelatorioLocal(null);
   }, [selectedUser?.id, filtros.dataInicio, filtros.dataFim]);
+
+  // Escuta notificações de atualizações de pontos e recarrega dados
+  useEffect(() => {
+    if (pontosUpdateTrigger > 0 && selectedUser) {
+      console.log('[ViewPoints] Recebida notificação de atualização de pontos, recarregando...');
+      buscarPontos();
+    }
+  }, [pontosUpdateTrigger, selectedUser, buscarPontos]);
 
   const gerarRelatorio = () => {
     if (!selectedUser || !filtros.dataInicio || !filtros.dataFim) return;
@@ -431,7 +439,7 @@ const ViewPoints: React.FC = () => {
       {/* Seleção de Usuário */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          {(isAdmin() || isMaster()) ? (
+          {isAdmin() ? (
             <FormControl fullWidth>
               <InputLabel id="user-select-label">
                 <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -457,10 +465,10 @@ const ViewPoints: React.FC = () => {
               <PersonIcon sx={{ mr: 2, color: 'primary.main' }} />
               <Box>
                 <Typography variant="h6" color="primary.main">
-                  {userProfile?.firstName || userProfile?.username || 'Usuário'}
+                  {user?.nome || 'Usuário'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {userProfile?.email}
+                  {user?.email}
                 </Typography>
               </Box>
             </Box>

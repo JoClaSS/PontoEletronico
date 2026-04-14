@@ -34,14 +34,26 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         try {
+            System.out.println("AuthService.login - Email: " + request.getEmail() + ", Senha fornecida: " + request.getSenha());
+            
+            // Primeiro, verificar se o usuário existe
+            Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> {
+                    System.out.println("Usuário não encontrado: " + request.getEmail());
+                    return new UsernameNotFoundException("Usuário não encontrado");
+                });
+            
+            System.out.println("Usuário encontrado: " + usuario.getNome() + ", Senha no BD: " + usuario.getSenha() + ", Ativo: " + usuario.getAtivo());
+            
+            // Testar o hash da senha fornecida
+            String senhaHasheada = passwordEncoder.encode(request.getSenha());
+            System.out.println("Hash da senha fornecida: " + senhaHasheada);
+            System.out.println("Senhas coincidem? " + passwordEncoder.matches(request.getSenha(), usuario.getSenha()));
+            
             // Autenticar credenciais
             Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getSenha())
             );
-
-            // Buscar usuário
-            Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 
             // Gerar token JWT
             String token = jwtUtil.generateToken(
@@ -53,10 +65,15 @@ public class AuthService {
             return LoginResponse.builder()
                 .token(token)
                 .usuario(usuario)
+                .primeiroLogin(usuario.getPrimeiroLogin())
                 .build();
 
         } catch (BadCredentialsException e) {
+            System.out.println("Credenciais inválidas para: " + request.getEmail());
             throw new BadCredentialsException("Credenciais inválidas");
+        } catch (Exception e) {
+            System.out.println("Erro no login: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            throw e;
         }
     }
 

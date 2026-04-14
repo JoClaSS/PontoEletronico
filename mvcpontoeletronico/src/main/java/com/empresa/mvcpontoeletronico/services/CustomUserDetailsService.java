@@ -20,10 +20,18 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        System.out.println("CustomUserDetailsService.loadUserByUsername - Carregando usuário: " + email);
+        
         Usuario usuario = usuarioRepository.findByEmail(email)
-            .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + email));
+            .orElseThrow(() -> {
+                System.out.println("Usuário não encontrado no loadUserByUsername: " + email);
+                return new UsernameNotFoundException("Usuário não encontrado: " + email);
+            });
+
+        System.out.println("Usuário carregado: " + usuario.getNome() + ", Ativo: " + usuario.getAtivo() + ", Senha: " + usuario.getSenha());
 
         if (!usuario.getAtivo()) {
+            System.out.println("Usuário inativo: " + email);
             throw new UsernameNotFoundException("Usuário inativo: " + email);
         }
 

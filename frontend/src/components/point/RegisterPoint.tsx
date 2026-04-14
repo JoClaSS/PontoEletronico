@@ -25,15 +25,15 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
-import { useKeycloak } from '../../contexts/KeycloakContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { TipoPonto } from '../../types';
 import type { TipoPonto as TipoPontoType } from '../../types';
 import { apiService } from '../../services/apiService';
 
 const RegisterPoint: React.FC = () => {
-  const { selectedUser, setSelectedUser, usuarios, setUsuarios } = useAppContext();
+  const { selectedUser, setSelectedUser, usuarios, setUsuarios, notifyPontosUpdate, pontosUpdateTrigger } = useAppContext();
   const { useUsuarios, usePontos } = useApi();
-  const { userProfile, isAdmin, isMaster } = useKeycloak();
+  const { user, isAdmin, isFuncionario } = useAuth();
   const usuariosHook = useUsuarios();
   const pontosHook = usePontos(selectedUser?.id);
 
@@ -73,13 +73,13 @@ const RegisterPoint: React.FC = () => {
     }
     
     // Se for funcionário, encontra seu próprio usuário e seleciona automaticamente
-    if (!isAdmin() && !isMaster() && userProfile && usuarios.length > 0) {
-      const usuarioLogado = usuarios.find(u => u.email === userProfile.email);
+    if (isFuncionario() && user && usuarios.length > 0) {
+      const usuarioLogado = usuarios.find(u => u.email === user.email);
       if (usuarioLogado && !selectedUser) {
         setSelectedUser(usuarioLogado);
       }
     }
-  }, [usuarios.length, userProfile, isAdmin, isMaster]);
+  }, [usuarios.length, user, isAdmin, isFuncionario]);
 
   // Atualiza lista de usuários no contexto quando carregados
   useEffect(() => {
@@ -90,11 +90,22 @@ const RegisterPoint: React.FC = () => {
 
   // Carrega pontos do usuário quando selecionado
   useEffect(() => {
+    console.log('[RegisterPoint] useEffect pontos - selectedUser:', selectedUser?.id);
     if (selectedUser?.id) {
       const hoje = format(new Date(), 'yyyy-MM-dd');
+      console.log('[RegisterPoint] Carregando pontos para data:', hoje);
       pontosHook.loadPontosPorData(selectedUser.id, hoje);
     }
   }, [selectedUser]);
+
+  // Escuta notificações de atualizações de pontos e recarrega dados
+  useEffect(() => {
+    if (pontosUpdateTrigger > 0 && selectedUser?.id) {
+      console.log('[RegisterPoint] Recebida notificação de atualização de pontos, recarregando...');
+      const hoje = format(new Date(), 'yyyy-MM-dd');
+      pontosHook.loadPontosPorData(selectedUser.id, hoje);
+    }
+  }, [pontosUpdateTrigger, selectedUser?.id]);
 
   const handleUserChange = (event: SelectChangeEvent<string>) => {
     const userId = event.target.value;
@@ -143,6 +154,9 @@ const RegisterPoint: React.FC = () => {
         // Força uma atualização manual da lista após o sucesso
         const hoje = format(new Date(), 'yyyy-MM-dd');
         pontosHook.loadPontosPorData?.(selectedUser.id, hoje);
+        
+        // Notifica outros componentes que pontos foram atualizados
+        notifyPontosUpdate();
       }
     } catch (error: any) {
       const errorMessage = error.userMessage || error.message || 'Erro ao registrar ponto';
@@ -227,7 +241,7 @@ const RegisterPoint: React.FC = () => {
             </Alert>
 
             {/* Seleção de Usuário */}
-            {(isAdmin() || isMaster()) ? (
+            {isAdmin() ? (
               <FormControl fullWidth sx={{ mb: 3 }}>
                 <InputLabel id="user-select-label">
                   <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -253,10 +267,10 @@ const RegisterPoint: React.FC = () => {
                 <PersonIcon sx={{ mr: 2, color: 'primary.main' }} />
                 <Box>
                   <Typography variant="h6" color="primary.main">
-                    {userProfile?.firstName || userProfile?.username || 'Usuário'}
+                    {user?.nome || 'Usuário'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {userProfile?.email}
+                    {user?.email}
                   </Typography>
                 </Box>
               </Box>
@@ -294,7 +308,7 @@ const RegisterPoint: React.FC = () => {
                 ) : pontosHook.data && pontosHook.data.length > 0 ? (
                   <List dense>
                     {pontosHook.data.map((ponto, index) => (
-                      <React.Fragment key={ponto.id}>
+                      <React.Fragment key={`ponto-${ponto.id || index}-${index}`}>
                         <ListItem>
                           <ListItemText
                             primary={
@@ -311,7 +325,7 @@ const RegisterPoint: React.FC = () => {
                             }
                           />
                         </ListItem>
-                        {index < pontosHook.data!.length - 1 && <Divider />}
+                        {index < pontosHook.data.length - 1 && <Divider />}
                       </React.Fragment>
                     ))}
                   </List>

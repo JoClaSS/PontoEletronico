@@ -9,6 +9,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   token: string;
   usuario: Usuario;
+  primeiroLogin?: boolean;
 }
 
 export interface AuthError {
@@ -147,6 +148,38 @@ class AuthService {
     }
 
     return response;
+  }
+
+  // Trocar senha do usuário
+  async trocarSenha(senhaAtual: string, novaSenha: string, confirmarSenha: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/trocar-senha`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.token}`,
+        },
+        body: JSON.stringify({
+          senhaAtual,
+          novaSenha,
+          confirmarSenha
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Erro ao alterar senha');
+      }
+
+      // Após trocar a senha com sucesso, atualizar o status do usuário
+      if (this.user) {
+        this.user.primeiroLogin = false;
+        localStorage.setItem('auth_user', JSON.stringify(this.user));
+      }
+    } catch (error) {
+      console.error('Erro ao trocar senha:', error);
+      throw error;
+    }
   }
 }
 

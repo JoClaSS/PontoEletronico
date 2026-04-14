@@ -52,14 +52,14 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
-import { useKeycloak } from '../../contexts/KeycloakContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { StatusSolicitacao } from '../../types';
 import type { Solicitacao, MotivoSolicitacao, CriarSolicitacaoRequest } from '../../types';
 
 const Solicitacoes: React.FC = () => {
   const { selectedUser, setSelectedUser, usuarios, setUsuarios } = useAppContext();
   const { useUsuarios } = useApi();
-  const { userProfile, isAdmin, isMaster } = useKeycloak();
+  const { user, isAdmin, isFuncionario } = useAuth();
   const usuariosHook = useUsuarios();
 
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
@@ -116,13 +116,13 @@ const Solicitacoes: React.FC = () => {
     carregarContagemSolicitacoesEmAberto();
     
     // Se for funcionário, encontra seu próprio usuário e seleciona automaticamente
-    if (!isAdmin() && !isMaster() && userProfile && usuarios.length > 0) {
-      const usuarioLogado = usuarios.find(u => u.email === userProfile.email);
+    if (isFuncionario() && user && usuarios.length > 0) {
+      const usuarioLogado = usuarios.find(u => u.email === user.email);
       if (usuarioLogado && !selectedUser) {
         setSelectedUser(usuarioLogado);
       }
     }
-  }, [usuarios.length, userProfile, isAdmin, isMaster]);
+  }, [usuarios.length, user, isAdmin, isFuncionario]);
 
   // Atualiza lista de usuários no contexto quando carregados
   useEffect(() => {
@@ -155,7 +155,7 @@ const Solicitacoes: React.FC = () => {
   };
 
   const carregarContagemSolicitacoesEmAberto = async () => {
-    if (!(isAdmin() || isMaster())) return;
+    if (!isAdmin()) return;
     
     try {
       const { apiMVCService } = await import('../../services/apiMVC');
@@ -225,16 +225,6 @@ const Solicitacoes: React.FC = () => {
       
       if (!novasSolicitacao.descricao?.trim()) {
         throw new Error('Descrição é obrigatória');
-      }
-      
-      // Valida se a data não é futura
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
-      const dataRef = new Date(dataReferencia);
-      dataRef.setHours(0, 0, 0, 0);
-      
-      if (dataRef > hoje) {
-        throw new Error('Não é possível criar solicitação para datas futuras');
       }
       
       if (motivoSelecionado?.requerAnexo && !arquivoSelecionado) {
@@ -361,13 +351,17 @@ const Solicitacoes: React.FC = () => {
     handleFecharMenu();
   };
 
-  const handleAbrirResolucao = async () => {
-    if (!solicitacaoSelecionada) return;
+  const handleAbrirResolucao = async (solicitacao?: any) => {
+    const solicitacaoParaUsar = solicitacao || solicitacaoSelecionada;
+    console.log('[Solicitacoes] Abrindo resolução para:', solicitacaoParaUsar);
+    if (!solicitacaoParaUsar) return;
     
     try {
       const { apiMVCService } = await import('../../services/apiMVC');
       // Busca os pontos da data referente
-      const pontos = await apiMVCService.getPontosPorData(solicitacaoSelecionada.usuarioId, solicitacaoSelecionada.dataReferencia);
+      console.log('[Solicitacoes] Buscando pontos para usuário:', solicitacaoParaUsar.usuarioId, 'data:', solicitacaoParaUsar.dataReferencia);
+      const pontos = await apiMVCService.getPontosPorData(solicitacaoParaUsar.usuarioId, solicitacaoParaUsar.dataReferencia);
+      console.log('[Solicitacoes] Pontos carregados:', pontos);
       
       if (pontos && pontos.length > 0) {
         // Se há pontos, preenche os campos
@@ -378,6 +372,8 @@ const Solicitacoes: React.FC = () => {
           horario: format(new Date(ponto.dataHora), 'HH:mm')
         }));
         
+        console.log('[Solicitacoes] Pontos processados:', pontosOrdenados);
+        
         setPontosReferencia({
           entrada1: pontosOrdenados[0]?.horario || '',
           saida1: pontosOrdenados[1]?.horario || '',
@@ -387,6 +383,7 @@ const Solicitacoes: React.FC = () => {
           saida3: pontosOrdenados[5]?.horario || ''
         });
       } else {
+        console.log('[Solicitacoes] Nenhum ponto encontrado, campos vazios');
         // Se não há pontos, deixa os campos vazios para serem preenchidos
         setPontosReferencia({
           entrada1: '',
@@ -582,7 +579,7 @@ const Solicitacoes: React.FC = () => {
       </Typography>
 
       {/* Aviso de solicitações em aberto - apenas para admin/master */}
-      {(isAdmin() || isMaster()) && solicitacaoMaisRecente && (
+      {isAdmin() && solicitacaoMaisRecente && (
         <Alert 
           severity="warning"
           sx={{ mb: 2 }}
@@ -624,7 +621,7 @@ const Solicitacoes: React.FC = () => {
                 startIcon={<CheckIcon />}
                 onClick={() => {
                   setSolicitacaoSelecionada(solicitacaoMaisRecente);
-                  setModalResolucao(true);
+                  handleAbrirResolucao(solicitacaoMaisRecente);
                 }}
               >
                 Resolver
@@ -650,7 +647,7 @@ const Solicitacoes: React.FC = () => {
       {/* Seleção de Usuário */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          {(isAdmin() || isMaster()) ? (
+          {isAdmin() ? (
             <FormControl fullWidth>
               <InputLabel id="user-select-label">
                 <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -676,10 +673,10 @@ const Solicitacoes: React.FC = () => {
               <PersonIcon sx={{ mr: 2, color: 'primary.main' }} />
               <Box>
                 <Typography variant="h6" color="primary.main">
-                  {userProfile?.firstName || userProfile?.username || 'Usuário'}
+                  {user?.nome || 'Usuário'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {userProfile?.email}
+                  {user?.email}
                 </Typography>
               </Box>
             </Box>
@@ -848,7 +845,7 @@ const Solicitacoes: React.FC = () => {
           </ListItemIcon>
           <ListItemText>Visualizar</ListItemText>
         </MenuItem>
-        {(isAdmin() || isMaster()) && solicitacaoSelecionada?.status === StatusSolicitacao.ABERTO && (
+        {isAdmin() && solicitacaoSelecionada?.status === StatusSolicitacao.ABERTO && (
           <MenuItem onClick={handleAbrirResolucao}>
             <ListItemIcon>
               <CheckIcon fontSize="small" />
@@ -856,7 +853,7 @@ const Solicitacoes: React.FC = () => {
             <ListItemText>Resolver</ListItemText>
           </MenuItem>
         )}
-        {(isAdmin() || isMaster()) && (
+        {isAdmin() && (
           <MenuItem onClick={handleAbrirConfirmacao}>
             <ListItemIcon>
               <CancelIcon fontSize="small" />
@@ -960,7 +957,6 @@ const Solicitacoes: React.FC = () => {
                     setDataReferencia(null);
                   }
                 }}
-                maxDate={new Date()}
                 format="dd/MM/yyyy"
                 slotProps={{
                   textField: {

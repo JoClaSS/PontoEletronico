@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppProvider } from './contexts/AppContext';
 import Layout from './components/layout/Layout';
 import Login from './components/auth/Login';
+import TrocaSenha from './components/auth/TrocaSenha';
 import RegisterPoint from './components/point/RegisterPoint';
 import ViewPoints from './components/point/ViewPoints';
 import Solicitacoes from './components/point/Solicitacoes';
@@ -30,11 +31,24 @@ const theme = createTheme(
 
 // Componente interno que usa o contexto de autenticação
 const AppContent: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, primeiroLogin, setPrimeiroLogin } = useAuth();
 
   // Se não estiver autenticado, mostra a tela de login
   if (!isAuthenticated) {
     return <Login />;
+  }
+
+  // Se for primeiro login, mostra tela de redefinição de senha
+  if (primeiroLogin) {
+    return (
+      <TrocaSenha 
+        onSucesso={() => {
+          setPrimeiroLogin(false);
+          // Recarrega os dados do usuário para atualizar o estado
+          window.location.reload();
+        }} 
+      />
+    );
   }
 
   // Se estiver autenticado, mostra o sistema principal

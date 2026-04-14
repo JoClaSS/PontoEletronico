@@ -13,6 +13,8 @@ interface AuthContextType {
   isFuncionario: () => boolean;
   getToken: () => string | null;
   loading: boolean;
+  primeiroLogin: boolean;
+  setPrimeiroLogin: (value: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
+  const [primeiroLogin, setPrimeiroLogin] = useState(false);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
@@ -51,6 +54,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('🔐 Dados do usuário:', userData);
           setUser(userData);
           setIsAuthenticated(true);
+          // Verificar se é primeiro login
+          if (userData && userData.primeiroLogin) {
+            setPrimeiroLogin(true);
+          }
         } else {
           console.log('🔐 Usuário não autenticado');
           setIsAuthenticated(false);
@@ -74,6 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authService.login(email, senha);
       setUser(response.usuario);
       setIsAuthenticated(true);
+      setPrimeiroLogin(response.primeiroLogin || false);
     } catch (error) {
       console.error('Erro no login:', error);
       throw error;
@@ -84,6 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     authService.logout();
     setIsAuthenticated(false);
     setUser(null);
+    setPrimeiroLogin(false);
   };
 
   const hasRole = (role: string): boolean => {
@@ -112,6 +121,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isFuncionario,
     getToken,
     loading,
+    primeiroLogin,
+    setPrimeiroLogin,
   };
 
   if (loading) {

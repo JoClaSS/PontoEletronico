@@ -19,7 +19,7 @@ import {
   PhotoCamera,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import { useKeycloak } from '../../contexts/KeycloakContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/apiService';
 import type { ConfiguracaoEmpresa, AtualizarConfiguracaoRequest } from '../../types';
 
@@ -34,10 +34,10 @@ interface FormData {
 }
 
 const Configuracoes: React.FC = () => {
-  const { isAdmin, isMaster } = useKeycloak();
+  const { user, isAdmin, isFuncionario } = useAuth();
   
   // Verificar permissão antes de renderizar qualquer coisa
-  const hasPermission = isAdmin() || isMaster();
+  const hasPermission = isAdmin();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 

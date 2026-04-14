@@ -14,4 +14,5 @@ public class LoginResponse {
 
     private String token;
     private Usuario usuario;
+    private boolean primeiroLogin;
 }

@@ -144,7 +144,7 @@ const Layout: React.FC = () => {
             </Button>
 
             {/* Botão Usuários - só para ADMIN e MASTER */}
-            {(isAdmin() || isMaster()) && (
+            {isAdmin() && (
               <Button
                 color="inherit"
                 startIcon={<PersonAddIcon />}
@@ -178,7 +178,7 @@ const Layout: React.FC = () => {
             </Button>
 
             {/* Botão Configurações - só para ADMIN e MASTER */}
-            {(isAdmin() || isMaster()) && (
+            {isAdmin() && (
               <Button
                 color="inherit"
                 startIcon={<SettingsIcon />}
@@ -218,7 +218,7 @@ const Layout: React.FC = () => {
                     sx={{
                       backgroundColor: 'rgba(255, 193, 7, 0.2)',
                       color: '#ffc107',
-                      border: `1px solid ${isMaster() ? 'rgba(156, 39, 176, 0.3)' : 'rgba(255, 193, 7, 0.3)'}`,
+                      border: '1px solid rgba(255, 193, 7, 0.3)',
                       display: { xs: 'none', sm: 'flex' }
                     }}
                   />

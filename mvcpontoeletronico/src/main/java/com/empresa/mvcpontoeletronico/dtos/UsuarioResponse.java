@@ -21,6 +21,7 @@ public class UsuarioResponse {
     private String cpf;
     private RoleType role;
     private Boolean ativo;
+    private Boolean primeiroLogin;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
