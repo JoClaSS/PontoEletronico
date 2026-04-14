@@ -274,7 +274,7 @@ const Configuracoes: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <SettingsIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
-              <Typography variant="h5" component="h1">
+              <Typography variant="h5" component="h1" color='black'>
                 Configurações da Empresa
               </Typography>
             </Box>

@@ -458,7 +458,7 @@ const UserManagement: React.FC = () => {
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <PersonAddIcon sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6">
+            <Typography variant="h6" color='black'>
               Cadastrar Usuário
             </Typography>
           </Box>

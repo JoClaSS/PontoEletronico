@@ -84,7 +84,7 @@ const Login: React.FC = () => {
                   mb: 2
                 }} 
               />
-              <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+              <Typography variant="h4" component="h1" gutterBottom fontWeight="bold" color='black'>
                 Ponto Eletrônico
               </Typography>
               <Typography variant="h6" color="textSecondary">
