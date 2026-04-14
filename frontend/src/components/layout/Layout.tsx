@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
@@ -6,22 +6,48 @@ import {
   Typography,
   Button,
   Box,
-  CircularProgress,
-  Container
+  Container,
+  Chip,
+  Avatar
 } from '@mui/material';
 import {
   Home as HomeIcon,
   Schedule as ScheduleIcon,
   PersonAdd as PersonAddIcon,
   Assignment as AssignmentIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  AdminPanelSettings as AdminIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { apiService } from '../../services/apiService';
+import type { ConfiguracaoEmpresa } from '../../types';
 
 const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loading, loggedUser, handleLogout } = useAppContext();
+  const { user, logout, isAdmin } = useAuth();
+  const [logoEmpresa, setLogoEmpresa] = useState<string | null>(null);
+  const [nomeEmpresa, setNomeEmpresa] = useState<string>('Mundial Ciclo');
+
+  // Carregar configurações da empresa para pegar a logo
+  useEffect(() => {
+    const carregarLogoEmpresa = async () => {
+      try {
+        const configuracoes = await apiService.getConfiguracoes();
+        if (configuracoes.fotoEmpresa) {
+          setLogoEmpresa(configuracoes.fotoEmpresa);
+        }
+        if (configuracoes.nomeEmpresa) {
+          setNomeEmpresa(configuracoes.nomeEmpresa);
+        }
+      } catch (error) {
+        console.log('Não foi possível carregar logo da empresa:', error);
+      }
+    };
+
+    carregarLogoEmpresa();
+  }, []);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -46,17 +72,42 @@ const Layout: React.FC = () => {
       >
         <Toolbar>
           {/* Logo/Nome do Sistema */}
-          <Typography 
-            variant="h6" 
-            component="div" 
+          <Box 
             sx={{ 
-              flexGrow: 1,
-              fontSize: { xs: '16px', sm: '18px', md: '20px' }
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              flexGrow: 1 
             }}
           >
-            <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Ponto Eletrônico</Box>
-            <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Ponto</Box>
-          </Typography>
+            {/* Logo da Empresa */}
+            {logoEmpresa && (
+              <Avatar
+                src={logoEmpresa}
+                alt={`Logo ${nomeEmpresa}`}
+                sx={{
+                  width: { xs: 32, sm: 36, md: 40 },
+                  height: { xs: 32, sm: 36, md: 40 },
+                  border: '2px solid rgba(255,255,255,0.2)'
+                }}
+              />
+            )}
+            
+            {/* Texto do Sistema */}
+            <Typography 
+              variant="h6" 
+              component="div" 
+              sx={{ 
+                fontSize: { xs: '16px', sm: '18px', md: '20px' }
+              }}
+            >
+              {/* Desktop/Tablet: Mostra nome completo */}
+              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Ponto Eletrônico</Box>
+              
+              {/* Mobile: Mostra logo OU texto "Ponto" */}
+              <Box sx={{ display: { xs: logoEmpresa ? 'none' : 'inline', sm: 'none' } }}>Ponto</Box>
+            </Typography>
+          </Box>
 
           {/* Navegação */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -92,21 +143,23 @@ const Layout: React.FC = () => {
               <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Frequência</Box>
             </Button>
 
-            {/* Botão Usuários */}
-            <Button
-              color="inherit"
-              startIcon={<PersonAddIcon />}
-              onClick={() => handleNavigation('/usuarios')}
-              variant={isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'outlined' : 'text'}
-              sx={{
-                backgroundColor: isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'rgba(255,255,255,0.1)' : 'transparent',
-                fontSize: { xs: '12px', sm: '14px', md: '16px' },
-                minWidth: { xs: 'auto', sm: '64px' },
-                px: { xs: 1, sm: 2 }
-              }}
-            >
-              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Usuários</Box>
-            </Button>
+            {/* Botão Usuários - só para ADMIN e MASTER */}
+            {isAdmin() && (
+              <Button
+                color="inherit"
+                startIcon={<PersonAddIcon />}
+                onClick={() => handleNavigation('/usuarios')}
+                variant={isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'outlined' : 'text'}
+                sx={{
+                  backgroundColor: isCurrentPath('/usuarios') || isCurrentPath('/usuarios/cadastrar') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  fontSize: { xs: '12px', sm: '14px', md: '16px' },
+                  minWidth: { xs: 'auto', sm: '64px' },
+                  px: { xs: 1, sm: 2 }
+                }}
+              >
+                <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Usuários</Box>
+              </Button>
+            )}
 
             {/* Botão Solicitações */}
             <Button
@@ -124,32 +177,58 @@ const Layout: React.FC = () => {
               <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Solicitações</Box>
             </Button>
 
-            {/* Indicador de Loading */}
-            {loading && (
-              <CircularProgress 
-                size={24} 
-                sx={{ color: 'white' }} 
-              />
+            {/* Botão Configurações - só para ADMIN e MASTER */}
+            {isAdmin() && (
+              <Button
+                color="inherit"
+                startIcon={<SettingsIcon />}
+                onClick={() => handleNavigation('/configuracoes')}
+                variant={isCurrentPath('/configuracoes') ? 'outlined' : 'text'}
+                sx={{
+                  backgroundColor: isCurrentPath('/configuracoes') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  fontSize: { xs: '12px', sm: '14px', md: '16px' },
+                  minWidth: { xs: 'auto', sm: '64px' },
+                  px: { xs: 1, sm: 2 }
+                }}
+              >
+                <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Configurações</Box>
+              </Button>
             )}
 
-            {/* Usuário Logado e Logout */}
-            {loggedUser && (
-              <>
+            {/* Usuário Logado e Status de Admin */}
+            {user && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+                {/* Nome do usuário */}
                 <Typography 
                   variant="body2" 
                   sx={{ 
-                    mx: 2, 
                     display: { xs: 'none', md: 'block' },
                     color: 'rgba(255, 255, 255, 0.9)'
                   }}
                 >
-                  Olá, {loggedUser.nome.split(' ')[0]}
+                  Olá, {user.nome.split(' ')[0]}
                 </Typography>
                 
+                {/* Badge de Admin */}
+                {isAdmin() && (
+                  <Chip
+                    icon={<AdminIcon />}
+                    label="Admin"
+                    size="small"
+                    sx={{
+                      backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                      color: '#ffc107',
+                      border: '1px solid rgba(255, 193, 7, 0.3)',
+                      display: { xs: 'none', sm: 'flex' }
+                    }}
+                  />
+                )}
+                
+                {/* Botão de Logout */}
                 <Button
                   color="inherit"
                   startIcon={<LogoutIcon />}
-                  onClick={handleLogout}
+                  onClick={logout}
                   variant="outlined"
                   size="small"
                   sx={{
@@ -165,7 +244,7 @@ const Layout: React.FC = () => {
                 >
                   <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Sair</Box>
                 </Button>
-              </>
+              </Box>
             )}
           </Box>
         </Toolbar>

@@ -72,6 +72,8 @@ public class SolicitacaoController {
             @RequestParam("dataReferencia") LocalDate dataReferencia,
             @RequestParam("motivoId") UUID motivoId,
             @RequestParam("descricao") String descricao,
+            @RequestParam(value = "diasConsecutivos", required = false, defaultValue = "false") Boolean diasConsecutivos,
+            @RequestParam(value = "quantidadeDias", required = false) Integer quantidadeDias,
             @RequestParam(value = "anexo", required = false) MultipartFile anexo) {
         log.debug("POST /api/solicitacoes/com-anexo - Criando solicitação com anexo para usuário: {}", usuarioId);
         try {
@@ -80,6 +82,8 @@ public class SolicitacaoController {
                 .dataReferencia(dataReferencia)
                 .motivoId(motivoId)
                 .descricao(descricao)
+                .diasConsecutivos(diasConsecutivos)
+                .quantidadeDias(quantidadeDias)
                 .build();
             
             // Adiciona anexo se fornecido
@@ -182,11 +186,30 @@ public class SolicitacaoController {
             
             // Se foram fornecidos dados de pontos, atualiza/cria os pontos primeiro
             if (dados.containsKey("pontos")) {
-                pontoEletronicoService.atualizarPontosPorData(
-                    solicitacao.getUsuarioId(),
-                    solicitacao.getDataReferencia(), 
-                    dados
-                );
+                // Verifica se a solicitação tem dias consecutivos
+                if (solicitacao.getDiasConsecutivos() && solicitacao.getQuantidadeDias() != null && solicitacao.getQuantidadeDias() > 1) {
+                    // Cria pontos para todos os dias consecutivos
+                    log.info("Criando pontos para {} dias consecutivos a partir da data {}", 
+                             solicitacao.getQuantidadeDias(), solicitacao.getDataReferencia());
+                    
+                    for (int i = 0; i < solicitacao.getQuantidadeDias(); i++) {
+                        LocalDate dataAtual = solicitacao.getDataReferencia().plusDays(i);
+                        log.debug("Criando ponto para a data: {}", dataAtual);
+                        
+                        pontoEletronicoService.atualizarPontosPorData(
+                            solicitacao.getUsuarioId(),
+                            dataAtual,
+                            dados
+                        );
+                    }
+                } else {
+                    // Lógica original - apenas para a data de referência
+                    pontoEletronicoService.atualizarPontosPorData(
+                        solicitacao.getUsuarioId(),
+                        solicitacao.getDataReferencia(), 
+                        dados
+                    );
+                }
             }
             
             // Resolve a solicitação
@@ -234,6 +257,41 @@ public class SolicitacaoController {
         } catch (IllegalArgumentException e) {
             log.warn("Erro ao atualizar status: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * Conta o número de solicitações em aberto no sistema
+     * GET /api/solicitacoes/contagem/abertas
+     */
+    @GetMapping("/contagem/abertas")
+    public ResponseEntity<?> contarSolicitacoesEmAberto() {
+        log.debug("GET /api/solicitacoes/contagem/abertas - Contando solicitações em aberto");
+        try {
+            Long quantidade = solicitacaoService.contarSolicitacoesEmAberto();
+            return ResponseEntity.ok(Map.of("quantidade", quantidade));
+        } catch (Exception e) {
+            log.error("Erro ao contar solicitações em aberto: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", "Erro interno do servidor"));
+        }
+    }
+    
+    /**
+     * Busca a solicitação mais recente em aberto no sistema
+     * GET /api/solicitacoes/recente/aberta
+     */
+    @GetMapping("/recente/aberta")
+    public ResponseEntity<?> buscarSolicitacaoMaisRecenteAberta() {
+        log.debug("GET /api/solicitacoes/recente/aberta - Buscando solicitação mais recente em aberto");
+        try {
+            SolicitacaoResponse solicitacao = solicitacaoService.buscarSolicitacaoMaisRecenteAberta();
+            if (solicitacao == null) {
+                return ResponseEntity.ok(Map.of("solicitacao", (Object) null));
+            }
+            return ResponseEntity.ok(Map.of("solicitacao", solicitacao));
+        } catch (Exception e) {
+            log.error("Erro ao buscar solicitação mais recente em aberto: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", "Erro interno do servidor"));
         }
     }
 }

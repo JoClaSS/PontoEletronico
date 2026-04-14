@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { apiService } from '../services/apiService';
-import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, ApiState } from '../types';
+import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, ApiState, CriarUsuarioRequest, ConfiguracaoEmpresa, AtualizarConfiguracaoRequest } from '../types';
 
 export const useApi = () => {
   const { setLoading } = useAppContext();
@@ -33,7 +33,7 @@ export const useApi = () => {
       }
     };
 
-    const criarUsuario = async (usuario: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'>): Promise<Usuario | null> => {
+    const criarUsuario = async (usuario: CriarUsuarioRequest): Promise<Usuario | null> => {
       setState(prev => ({ ...prev, loading: true, error: null }));
       setLoading(true);
       
@@ -54,11 +54,64 @@ export const useApi = () => {
       }
     };
 
-    return { ...state, loadUsuarios, criarUsuario };
+    const desativarUsuario = async (id: string): Promise<void> => {
+      setLoading(true);
+      try {
+        await apiService.desativarUsuario(id);
+        // Recarrega a lista após desativar
+        await loadUsuarios();
+      } catch (error: any) {
+        console.error('[useApi] Erro ao desativar usuário:', error);
+        
+        // Extrair mensagem mais específica do erro
+        let errorMessage = 'Erro ao desativar usuário';
+        
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.userMessage) {
+          errorMessage = error.userMessage;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Se contém "Keycloak", dar uma mensagem mais amigável
+        if (errorMessage.includes('Keycloak')) {
+          errorMessage = 'Usuário foi desativado localmente, mas houve problema com o sistema de autenticação. Por favor, verifique com o administrador.';
+        }
+        
+        setState(prev => ({ 
+          ...prev, 
+          error: errorMessage
+        }));
+        throw new Error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const reativarUsuario = async (id: string): Promise<void> => {
+      setLoading(true);
+      try {
+        await apiService.reativarUsuario(id);
+        // Recarrega a lista após reativar
+        await loadUsuarios();
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao reativar usuário';
+        setState(prev => ({ 
+          ...prev, 
+          error: errorMessage
+        }));
+        throw new Error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return { ...state, loadUsuarios, criarUsuario, desativarUsuario, reativarUsuario };
   };
 
   // Hook para operações de ponto
-  const usePontos = (usuarioId?: string) => {
+  const usePontos = (_usuarioId?: string) => {
     const [state, setState] = useState<ApiState<PontoEletronico[]>>({
       data: null,
       loading: false,
@@ -190,9 +243,62 @@ export const useApi = () => {
     return { ...state, loadRelatorioHoras };
   };
 
+  // Hook para configurações da empresa
+  const useConfiguracoes = () => {
+    const [state, setState] = useState<ApiState<ConfiguracaoEmpresa>>({
+      data: null,
+      loading: false,
+      error: null
+    });
+
+    const loadConfiguracoes = useCallback(async () => {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      setLoading(true);
+      
+      try {
+        const configuracoes = await apiService.getConfiguracoes();
+        setState({ data: configuracoes, loading: false, error: null });
+        return configuracoes;
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao carregar configurações';
+        setState({ 
+          data: null, 
+          loading: false, 
+          error: errorMessage
+        });
+        throw new Error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    }, []); // Removida dependência de setLoading para evitar loop
+
+    const salvarConfiguracoes = useCallback(async (configuracoes: AtualizarConfiguracaoRequest): Promise<ConfiguracaoEmpresa | null> => {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      setLoading(true);
+      
+      try {
+        const configuracoesSalvas = await apiService.salvarConfiguracoes(configuracoes);
+        setState({ data: configuracoesSalvas, loading: false, error: null });
+        return configuracoesSalvas;
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao salvar configurações';
+        setState(prev => ({ 
+          ...prev, 
+          error: errorMessage
+        }));
+        throw new Error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    }, []); // Removida dependência de setLoading para evitar loop
+
+    return { ...state, loadConfiguracoes, salvarConfiguracoes };
+  };
+
   return {
     useUsuarios,
     usePontos,
-    useRelatorios
+    useRelatorios,
+    useConfiguracoes
   };
 };

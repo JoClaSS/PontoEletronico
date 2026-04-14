@@ -1,4 +1,4 @@
-import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos } from '../types';
+import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, CriarUsuarioRequest, ConfiguracaoEmpresa, AtualizarConfiguracaoRequest } from '../types';
 import { apiMVCService } from './apiMVC';
 
 // Serviço simplificado usando apenas MVC
@@ -16,8 +16,16 @@ export class ApiService {
     return apiMVCService.getUsuarioByEmail(email);
   }
 
-  async criarUsuario(usuario: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'>): Promise<Usuario> {
+  async criarUsuario(usuario: CriarUsuarioRequest): Promise<Usuario> {
     return apiMVCService.criarUsuario(usuario);
+  }
+
+  async desativarUsuario(id: string): Promise<void> {
+    return apiMVCService.desativarUsuario(id);
+  }
+
+  async reativarUsuario(id: string): Promise<void> {
+    return apiMVCService.reativarUsuario(id);
   }
 
   // Pontos Eletrônicos
@@ -49,6 +57,15 @@ export class ApiService {
   async getUsuariosAtivos(): Promise<Usuario[]> {
     // MVC não tem conceito de ativo/inativo, retorna todos
     return apiMVCService.getUsuarios();
+  }
+
+  // Configurações da Empresa
+  async getConfiguracoes(): Promise<ConfiguracaoEmpresa> {
+    return apiMVCService.getConfiguracoes();
+  }
+
+  async salvarConfiguracoes(configuracoes: AtualizarConfiguracaoRequest): Promise<ConfiguracaoEmpresa> {
+    return apiMVCService.salvarConfiguracoes(configuracoes);
   }
 }
 

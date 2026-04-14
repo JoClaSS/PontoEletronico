@@ -27,7 +27,11 @@ import {
   IconButton,
   Menu,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormLabel
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -48,12 +52,14 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
+import { useAuth } from '../../contexts/AuthContext';
 import { StatusSolicitacao } from '../../types';
 import type { Solicitacao, MotivoSolicitacao, CriarSolicitacaoRequest } from '../../types';
 
 const Solicitacoes: React.FC = () => {
   const { selectedUser, setSelectedUser, usuarios, setUsuarios } = useAppContext();
   const { useUsuarios } = useApi();
+  const { user, isAdmin, isFuncionario } = useAuth();
   const usuariosHook = useUsuarios();
 
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
@@ -89,8 +95,17 @@ const Solicitacoes: React.FC = () => {
     dataReferencia: '',
     usuarioId: '',
     motivoId: '',
-    descricao: ''
+    descricao: '',
+    diasConsecutivos: false,
+    quantidadeDias: undefined
   });
+
+  // Estados para dias consecutivos
+  const [diasConsecutivos, setDiasConsecutivos] = useState<boolean>(false);
+  
+  // Estado para contagem de solicitações em aberto (apenas para admin/master)
+  const [solicitacoesEmAberto, setSolicitacoesEmAberto] = useState<number>(0);
+  const [solicitacaoMaisRecente, setSolicitacaoMaisRecente] = useState<Solicitacao | null>(null);
 
   // Carrega usuários na inicialização
   useEffect(() => {
@@ -98,7 +113,16 @@ const Solicitacoes: React.FC = () => {
       usuariosHook.loadUsuarios();
     }
     carregarMotivos();
-  }, []);
+    carregarContagemSolicitacoesEmAberto();
+    
+    // Se for funcionário, encontra seu próprio usuário e seleciona automaticamente
+    if (isFuncionario() && user && usuarios.length > 0) {
+      const usuarioLogado = usuarios.find(u => u.email === user.email);
+      if (usuarioLogado && !selectedUser) {
+        setSelectedUser(usuarioLogado);
+      }
+    }
+  }, [usuarios.length, user, isAdmin, isFuncionario]);
 
   // Atualiza lista de usuários no contexto quando carregados
   useEffect(() => {
@@ -122,13 +146,27 @@ const Solicitacoes: React.FC = () => {
 
   const carregarMotivos = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/solicitacoes/motivos');
-      if (response.ok) {
-        const data = await response.json();
-        setMotivos(data);
-      }
+      const { apiMVCService } = await import('../../services/apiMVC');
+      const data = await apiMVCService.getMotivos();
+      setMotivos(data);
     } catch (error) {
       console.error('Erro ao carregar motivos:', error);
+    }
+  };
+
+  const carregarContagemSolicitacoesEmAberto = async () => {
+    if (!isAdmin()) return;
+    
+    try {
+      const { apiMVCService } = await import('../../services/apiMVC');
+      const [contagemData, recenteData] = await Promise.all([
+        apiMVCService.contarSolicitacoesEmAberto(),
+        apiMVCService.buscarSolicitacaoMaisRecenteAberta()
+      ]);
+      setSolicitacoesEmAberto(contagemData.quantidade);
+      setSolicitacaoMaisRecente(recenteData.solicitacao);
+    } catch (error) {
+      console.error('Erro ao carregar dados de solicitações em aberto:', error);
     }
   };
 
@@ -137,11 +175,9 @@ const Solicitacoes: React.FC = () => {
     
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8081/api/solicitacoes/usuario/${selectedUser.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSolicitacoes(data);
-      }
+      const { apiMVCService } = await import('../../services/apiMVC');
+      const data = await apiMVCService.getSolicitacoesPorUsuario(selectedUser.id);
+      setSolicitacoes(data);
     } catch (error) {
       console.error('Erro ao carregar solicitações:', error);
       setSnackbar({
@@ -170,11 +206,14 @@ const Solicitacoes: React.FC = () => {
       dataReferencia: '',
       usuarioId: selectedUser?.id || '',
       motivoId: '',
-      descricao: ''
+      descricao: '',
+      diasConsecutivos: false,
+      quantidadeDias: undefined
     });
     setDataReferencia(null);
     setArquivoSelecionado(null);
     setMotivoSelecionado(null);
+    setDiasConsecutivos(false);
   };
 
   const handleSubmitSolicitacao = async () => {
@@ -188,24 +227,28 @@ const Solicitacoes: React.FC = () => {
         throw new Error('Descrição é obrigatória');
       }
       
-      // Valida se a data não é futura
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
-      const dataRef = new Date(dataReferencia);
-      dataRef.setHours(0, 0, 0, 0);
-      
-      if (dataRef > hoje) {
-        throw new Error('Não é possível criar solicitação para datas futuras');
-      }
-      
       if (motivoSelecionado?.requerAnexo && !arquivoSelecionado) {
         throw new Error('Anexo é obrigatório para este motivo');
+      }
+      
+      // Valida campos de dias consecutivos
+      if (diasConsecutivos && (!novasSolicitacao.quantidadeDias || novasSolicitacao.quantidadeDias < 2)) {
+        throw new Error('Quantidade de dias é obrigatória e deve ser pelo menos 2');
+      }
+      
+      if (diasConsecutivos && novasSolicitacao.quantidadeDias && novasSolicitacao.quantidadeDias > 30) {
+        throw new Error('Quantidade de dias não pode exceder 30');
       }
       
       // Formato da data para envio
       const dataFormatada = format(dataReferencia, 'yyyy-MM-dd');
       
-      let response;
+      // Debug da autenticação
+      const { default: keycloakService } = await import('../../services/keycloakService');
+      console.log('=== DEBUG AUTENTICAÇÃO ===');
+      console.log('Status Keycloak:', keycloakService.getDebugInfo());
+      
+      const { apiMVCService } = await import('../../services/apiMVC');
       
       // Se o motivo requer anexo ou se um anexo foi fornecido, usa a API de multipart
       if (motivoSelecionado?.requerAnexo || arquivoSelecionado) {        
@@ -215,41 +258,39 @@ const Solicitacoes: React.FC = () => {
         formData.append('motivoId', novasSolicitacao.motivoId);
         formData.append('descricao', novasSolicitacao.descricao.trim());
         
+        if (diasConsecutivos) {
+          formData.append('diasConsecutivos', 'true');
+          if (novasSolicitacao.quantidadeDias) {
+            formData.append('quantidadeDias', novasSolicitacao.quantidadeDias.toString());
+          }
+        } else {
+          formData.append('diasConsecutivos', 'false');
+        }
+        
         if (arquivoSelecionado) {
           formData.append('anexo', arquivoSelecionado);
         }
         
-        response = await fetch('http://localhost:8081/api/solicitacoes/com-anexo', {
-          method: 'POST',
-          body: formData,
-        });
+        await apiMVCService.criarSolicitacaoComAnexo(formData);
       } else {
         // Usa a API JSON normal
-        response = await fetch('http://localhost:8081/api/solicitacoes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...novasSolicitacao,
-            dataReferencia: dataFormatada,
-            descricao: novasSolicitacao.descricao.trim()
-          }),
+        await apiMVCService.criarSolicitacao({
+          ...novasSolicitacao,
+          dataReferencia: dataFormatada,
+          descricao: novasSolicitacao.descricao.trim(),
+          diasConsecutivos,
+          quantidadeDias: diasConsecutivos ? novasSolicitacao.quantidadeDias : undefined
         });
       }
 
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: 'Solicitação criada com sucesso!',
-          severity: 'success'
-        });
-        handleFecharDialog();
-        carregarSolicitacoes();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro ao criar solicitação');
-      }
+      setSnackbar({
+        open: true,
+        message: 'Solicitação criada com sucesso!',
+        severity: 'success'
+      });
+      handleFecharDialog();
+      carregarSolicitacoes();
+      carregarContagemSolicitacoesEmAberto();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -276,21 +317,17 @@ const Solicitacoes: React.FC = () => {
 
   const handleDownloadAnexo = async (solicitacaoId: string, nomeArquivo: string) => {
     try {
-      const response = await fetch(`http://localhost:8081/api/solicitacoes/${solicitacaoId}/anexo`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = nomeArquivo;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } else {
-        throw new Error('Erro ao baixar anexo');
-      }
+      const { apiMVCService } = await import('../../services/apiMVC');
+      const blob = await apiMVCService.baixarAnexoSolicitacao(solicitacaoId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = nomeArquivo;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Erro ao baixar anexo:', error);
       setSnackbar({
@@ -314,54 +351,52 @@ const Solicitacoes: React.FC = () => {
     handleFecharMenu();
   };
 
-  const handleAbrirResolucao = async () => {
-    if (!solicitacaoSelecionada) return;
+  const handleAbrirResolucao = async (solicitacao?: any) => {
+    const solicitacaoParaUsar = solicitacao || solicitacaoSelecionada;
+    console.log('[Solicitacoes] Abrindo resolução para:', solicitacaoParaUsar);
+    if (!solicitacaoParaUsar) return;
     
     try {
+      const { apiMVCService } = await import('../../services/apiMVC');
       // Busca os pontos da data referente
-      const response = await fetch(`http://localhost:8081/api/pontos/usuario/${solicitacaoSelecionada.usuarioId}?data=${solicitacaoSelecionada.dataReferencia}`);
+      console.log('[Solicitacoes] Buscando pontos para usuário:', solicitacaoParaUsar.usuarioId, 'data:', solicitacaoParaUsar.dataReferencia);
+      const pontos = await apiMVCService.getPontosPorData(solicitacaoParaUsar.usuarioId, solicitacaoParaUsar.dataReferencia);
+      console.log('[Solicitacoes] Pontos carregados:', pontos);
       
-      if (response.ok) {
-        const pontos = await response.json();
+      if (pontos && pontos.length > 0) {
+        // Se há pontos, preenche os campos
+        const pontosOrdenados = pontos.sort((a: { dataHora: string | number | Date; }, b: { dataHora: string | number | Date; }) => 
+          new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime()
+        ).map((ponto: { dataHora: string | number | Date; }) => ({
+          ...ponto,
+          horario: format(new Date(ponto.dataHora), 'HH:mm')
+        }));
         
-        if (pontos && pontos.length > 0) {
-          // Se há pontos, preenche os campos
-          const pontosOrdenados = pontos.sort((a: { dataHora: string | number | Date; }, b: { dataHora: string | number | Date; }) => 
-            new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime()
-          ).map((ponto: { dataHora: string | number | Date; }) => ({
-            ...ponto,
-            horario: format(new Date(ponto.dataHora), 'HH:mm')
-          }));
-          
-          setPontosReferencia({
-            entrada1: pontosOrdenados[0]?.horario || '',
-            saida1: pontosOrdenados[1]?.horario || '',
-            entrada2: pontosOrdenados[2]?.horario || '',
-            saida2: pontosOrdenados[3]?.horario || '',
-            entrada3: pontosOrdenados[4]?.horario || '',
-            saida3: pontosOrdenados[5]?.horario || ''
-          });
-        } else {
-          // Se não há pontos, deixa os campos vazios para serem preenchidos
-          setPontosReferencia({
-            entrada1: '',
-            saida1: '',
-            entrada2: '',
-            saida2: '',
-            entrada3: '',
-            saida3: ''
-          });
-        }
+        console.log('[Solicitacoes] Pontos processados:', pontosOrdenados);
         
-        setObservacaoResolucao('');
-        setModalResolucao(true);
+        setPontosReferencia({
+          entrada1: pontosOrdenados[0]?.horario || '',
+          saida1: pontosOrdenados[1]?.horario || '',
+          entrada2: pontosOrdenados[2]?.horario || '',
+          saida2: pontosOrdenados[3]?.horario || '',
+          entrada3: pontosOrdenados[4]?.horario || '',
+          saida3: pontosOrdenados[5]?.horario || ''
+        });
       } else {
-        setSnackbar({
-          open: true,
-          message: 'Erro ao carregar pontos da data referente',
-          severity: 'error'
+        console.log('[Solicitacoes] Nenhum ponto encontrado, campos vazios');
+        // Se não há pontos, deixa os campos vazios para serem preenchidos
+        setPontosReferencia({
+          entrada1: '',
+          saida1: '',
+          entrada2: '',
+          saida2: '',
+          entrada3: '',
+          saida3: ''
         });
       }
+      
+      setObservacaoResolucao('');
+      setModalResolucao(true);
     } catch (error) {
       console.error('Erro ao carregar pontos:', error);
       setSnackbar({
@@ -388,32 +423,23 @@ const Solicitacoes: React.FC = () => {
     }
     
     try {
+      const { apiMVCService } = await import('../../services/apiMVC');
       // Inclui os pontos editados e observação na requisição
-      const response = await fetch(`http://localhost:8081/api/solicitacoes/${solicitacaoSelecionada.id}/resolver`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pontos: pontosReferencia,
-          observacao: observacaoResolucao.trim(),
-          dataReferencia: solicitacaoSelecionada.dataReferencia
-        })
+      await apiMVCService.resolverSolicitacao(solicitacaoSelecionada.id, {
+        pontos: pontosReferencia,
+        observacao: observacaoResolucao.trim(),
+        dataReferencia: solicitacaoSelecionada.dataReferencia
       });
 
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: 'Solicitação resolvida com sucesso!',
-          severity: 'success'
-        });
-        setModalResolucao(false);
-        handleLimparSelecao();
-        carregarSolicitacoes();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro ao resolver solicitação');
-      }
+      setSnackbar({
+        open: true,
+        message: 'Solicitação resolvida com sucesso!',
+        severity: 'success'
+      });
+      setModalResolucao(false);
+      handleLimparSelecao();
+      carregarSolicitacoes();
+      carregarContagemSolicitacoesEmAberto();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -431,24 +457,41 @@ const Solicitacoes: React.FC = () => {
   const handleCancelarSolicitacao = async () => {
     if (!solicitacaoSelecionada) return;
     
-    try {
-      const response = await fetch(`http://localhost:8081/api/solicitacoes/${solicitacaoSelecionada.id}`, {
-        method: 'DELETE',
+    // Verifica se a solicitação já foi resolvida
+    if (solicitacaoSelecionada.status === StatusSolicitacao.RESOLVIDO) {
+      setSnackbar({
+        open: true,
+        message: 'Não é possível cancelar uma solicitação que já foi resolvida',
+        severity: 'error'
       });
+      setModalConfirmacao(false);
+      return;
+    }
+    
+    // Verifica se a solicitação já foi cancelada
+    if (solicitacaoSelecionada.status === StatusSolicitacao.CANCELADO) {
+      setSnackbar({
+        open: true,
+        message: 'Esta solicitação já foi cancelada',
+        severity: 'error'
+      });
+      setModalConfirmacao(false);
+      return;
+    }
+    
+    try {
+      const { apiMVCService } = await import('../../services/apiMVC');
+      await apiMVCService.excluirSolicitacao(solicitacaoSelecionada.id);
 
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: 'Solicitação cancelada com sucesso!',
-          severity: 'success'
-        });
-        setModalConfirmacao(false);
-        handleLimparSelecao();
-        carregarSolicitacoes();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro ao cancelar solicitação');
-      }
+      setSnackbar({
+        open: true,
+        message: 'Solicitação cancelada com sucesso!',
+        severity: 'success'
+      });
+      setModalConfirmacao(false);
+      handleLimparSelecao();
+      carregarSolicitacoes();
+      carregarContagemSolicitacoesEmAberto();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -531,32 +574,113 @@ const Solicitacoes: React.FC = () => {
   return (
     <Box>
       {/* Título */}
-      <Typography variant="h4" component="h1" gutterBottom sx={{ color: 'black' }}>
+      <Typography variant="h4" component="h1" sx={{ color: 'black', mb: 2 }}>
         Solicitações
       </Typography>
+
+      {/* Aviso de solicitações em aberto - apenas para admin/master */}
+      {isAdmin() && solicitacaoMaisRecente && (
+        <Alert 
+          severity="warning"
+          sx={{ mb: 2 }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+              Solicitação mais recente em aberto ({solicitacoesEmAberto} total{solicitacoesEmAberto > 1 ? '' : ''})
+            </Typography>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Typography variant="body2">
+                <strong>Data:</strong> {format(parseISO(solicitacaoMaisRecente.dataReferencia + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Usuário:</strong> {solicitacaoMaisRecente.nomeUsuario}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Motivo:</strong> {solicitacaoMaisRecente.motivo.descricao}
+              </Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ViewIcon />}
+                onClick={() => {
+                  setSolicitacaoSelecionada(solicitacaoMaisRecente);
+                  setModalVisualizacao(true);
+                }}
+              >
+                Visualizar
+              </Button>
+              
+              <Button
+                size="small"
+                variant="contained"
+                color="success"
+                startIcon={<CheckIcon />}
+                onClick={() => {
+                  setSolicitacaoSelecionada(solicitacaoMaisRecente);
+                  handleAbrirResolucao(solicitacaoMaisRecente);
+                }}
+              >
+                Resolver
+              </Button>
+              
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<CancelIcon />}
+                onClick={() => {
+                  setSolicitacaoSelecionada(solicitacaoMaisRecente);
+                  setModalConfirmacao(true);
+                }}
+              >
+                Cancelar
+              </Button>
+            </Box>
+          </Box>
+        </Alert>
+      )}
 
       {/* Seleção de Usuário */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <FormControl fullWidth>
-            <InputLabel id="user-select-label">
-              <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Selecione o Usuário
-            </InputLabel>
-            <Select
-              labelId="user-select-label"
-              value={selectedUser?.id || ''}
-              onChange={handleUserChange}
-              label="Selecione o Usuário"
-              disabled={usuariosHook.loading}
-            >
-              {usuarios.map((user) => (
-                <MenuItem key={user.id} value={user.id}>
-                  {user.nome} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {isAdmin() ? (
+            <FormControl fullWidth>
+              <InputLabel id="user-select-label">
+                <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Selecione o Usuário
+              </InputLabel>
+              <Select
+                labelId="user-select-label"
+                value={selectedUser?.id || ''}
+                onChange={handleUserChange}
+                label="Selecione o Usuário"
+                disabled={usuariosHook.loading}
+              >
+                {usuarios.map((user) => (
+                  <MenuItem key={user.id} value={user.id}>
+                    {user.nome} ({user.email})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            // Para funcionários, mostra apenas informação read-only
+            <Box sx={{ display: 'flex', alignItems: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <PersonIcon sx={{ mr: 2, color: 'primary.main' }} />
+              <Box>
+                <Typography variant="h6" color="primary.main">
+                  {user?.nome || 'Usuário'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {user?.email}
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </CardContent>
       </Card>
 
@@ -588,7 +712,13 @@ const Solicitacoes: React.FC = () => {
                     <DatePicker
                       label="Data Inicial"
                       value={dataInicial}
-                      onChange={(newValue) => setDataInicial(newValue)}
+                      onChange={(newValue) => {
+                        if (newValue) {
+                          setDataInicial(newValue instanceof Date ? newValue : new Date(newValue.toString()));
+                        } else {
+                          setDataInicial(null);
+                        }
+                      }}
                       format="dd/MM/yyyy"
                       slotProps={{
                         textField: {
@@ -600,7 +730,13 @@ const Solicitacoes: React.FC = () => {
                     <DatePicker
                       label="Data Final"
                       value={dataFinal}
-                      onChange={(newValue) => setDataFinal(newValue)}
+                      onChange={(newValue) => {
+                        if (newValue) {
+                          setDataFinal(newValue instanceof Date ? newValue : new Date(newValue.toString()));
+                        } else {
+                          setDataFinal(null);
+                        }
+                      }}
                       format="dd/MM/yyyy"
                       slotProps={{
                         textField: {
@@ -709,7 +845,7 @@ const Solicitacoes: React.FC = () => {
           </ListItemIcon>
           <ListItemText>Visualizar</ListItemText>
         </MenuItem>
-        {solicitacaoSelecionada?.status === StatusSolicitacao.ABERTO && (
+        {isAdmin() && solicitacaoSelecionada?.status === StatusSolicitacao.ABERTO && (
           <MenuItem onClick={handleAbrirResolucao}>
             <ListItemIcon>
               <CheckIcon fontSize="small" />
@@ -717,12 +853,14 @@ const Solicitacoes: React.FC = () => {
             <ListItemText>Resolver</ListItemText>
           </MenuItem>
         )}
-        <MenuItem onClick={handleAbrirConfirmacao}>
-          <ListItemIcon>
-            <CancelIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Cancelar</ListItemText>
-        </MenuItem>
+        {isAdmin() && (
+          <MenuItem onClick={handleAbrirConfirmacao}>
+            <ListItemIcon>
+              <CancelIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Cancelar</ListItemText>
+          </MenuItem>
+        )}
       </Menu>
 
       {/* Modal de Visualização */}
@@ -756,6 +894,15 @@ const Solicitacoes: React.FC = () => {
                 <Typography variant="subtitle2">Descrição:</Typography>
                 <Typography variant="body1">{solicitacaoSelecionada.descricao}</Typography>
               </Box>
+              
+              {solicitacaoSelecionada.diasConsecutivos && (
+                <Box>
+                  <Typography variant="subtitle2">Dias Consecutivos:</Typography>
+                  <Typography variant="body1">
+                    Sim - {solicitacaoSelecionada.quantidadeDias} dias
+                  </Typography>
+                </Box>
+              )}
               
               {solicitacaoSelecionada.temAnexo && (
                 <Box>
@@ -803,8 +950,13 @@ const Solicitacoes: React.FC = () => {
               <DatePicker
                 label="Data de Referência *"
                 value={dataReferencia}
-                onChange={(newValue) => setDataReferencia(newValue)}
-                maxDate={new Date()}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    setDataReferencia(newValue instanceof Date ? newValue : new Date(newValue.toString()));
+                  } else {
+                    setDataReferencia(null);
+                  }
+                }}
                 format="dd/MM/yyyy"
                 slotProps={{
                   textField: {
@@ -839,6 +991,46 @@ const Solicitacoes: React.FC = () => {
               required
               fullWidth
             />
+
+            {/* Campo de Dias Consecutivos */}
+            <Box>
+              <FormLabel component="legend">Dias consecutivos?</FormLabel>
+              <RadioGroup
+                row
+                value={diasConsecutivos ? 'sim' : 'nao'}
+                onChange={(e) => {
+                  const valor = e.target.value === 'sim';
+                  setDiasConsecutivos(valor);
+                  setNovaSolicitacao(prev => ({
+                    ...prev,
+                    diasConsecutivos: valor,
+                    quantidadeDias: valor ? prev.quantidadeDias : undefined
+                  }));
+                }}
+              >
+                <FormControlLabel value="nao" control={<Radio />} label="Não" />
+                <FormControlLabel value="sim" control={<Radio />} label="Sim" />
+              </RadioGroup>
+            </Box>
+
+            {/* Campo de Quantidade de Dias - só aparece se dias consecutivos = Sim */}
+            {diasConsecutivos && (
+              <TextField
+                label="Quantidade de dias *"
+                type="number"
+                InputProps={{ 
+                  inputProps: { min: 2, max: 30 }
+                }}
+                value={novasSolicitacao.quantidadeDias || ''}
+                onChange={(e) => {
+                  const valor = e.target.value ? parseInt(e.target.value) : undefined;
+                  setNovaSolicitacao(prev => ({ ...prev, quantidadeDias: valor }));
+                }}
+                required={diasConsecutivos}
+                fullWidth
+                helperText="Mínimo 2 dias, máximo 30 dias"
+              />
+            )}
 
             {/* Campo de Anexo - só aparece se o motivo requer anexo */}
             {motivoSelecionado?.requerAnexo && (

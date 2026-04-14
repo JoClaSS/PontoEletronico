@@ -59,6 +59,14 @@ public class Solicitacao {
     @Column(name = "anexo_conteudo", columnDefinition = "BYTEA")
     private byte[] anexoConteudo;
     
+    // Campos para dias consecutivos
+    @Column(name = "dias_consecutivos", nullable = false)
+    @Builder.Default
+    private Boolean diasConsecutivos = false;
+    
+    @Column(name = "quantidade_dias")
+    private Integer quantidadeDias;
+    
     @Enumerated(EnumType.STRING)
     @NotNull(message = "Status é obrigatório")
     @Column(name = "status", nullable = false)

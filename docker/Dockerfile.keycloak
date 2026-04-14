@@ -1,0 +1,17 @@
+FROM quay.io/keycloak/keycloak:23.0.1
+
+# Definir variáveis de ambiente
+ENV KEYCLOAK_ADMIN=admin
+ENV KEYCLOAK_ADMIN_PASSWORD=admin
+
+# Copiar arquivo de realm
+COPY MundialCiclo-realm.json /opt/keycloak/data/import/
+
+# Expor porta padrão do Keycloak
+EXPOSE 8080
+
+# Definir estratégia de import para sobrescrever
+ENV KC_SPI_EXPORT_IMPORT_STRATEGY=overwrite_existing
+
+# Iniciar com importação do realm
+ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]

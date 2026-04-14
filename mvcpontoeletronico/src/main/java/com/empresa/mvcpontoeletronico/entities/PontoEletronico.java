@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -33,6 +34,11 @@ public class PontoEletronico {
     @JoinColumn(name = "usuario_id", nullable = false)
     @NotNull(message = "Usuário é obrigatório")
     private Usuario usuario;
+    
+    // Data de referência do ponto (independente da data de criação)
+    @Column(name = "data", nullable = false)
+    @NotNull(message = "Data de referência é obrigatória")
+    private LocalDate data;
     
     // Colunas de entrada e saída - até 3 pares por dia
     @Column(name = "entrada1")

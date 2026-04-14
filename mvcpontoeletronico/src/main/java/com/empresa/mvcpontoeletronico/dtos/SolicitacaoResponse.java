@@ -33,6 +33,10 @@ public class SolicitacaoResponse {
     private Long anexoTamanho;
     private Boolean temAnexo;
     
+    // Campos para dias consecutivos
+    private Boolean diasConsecutivos;
+    private Integer quantidadeDias;
+    
     private StatusSolicitacao status;
     private String statusDescricao;
     private LocalDateTime createdAt;

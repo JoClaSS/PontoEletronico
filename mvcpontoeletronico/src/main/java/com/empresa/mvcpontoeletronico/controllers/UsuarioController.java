@@ -1,5 +1,8 @@
 package com.empresa.mvcpontoeletronico.controllers;
 
+import com.empresa.mvcpontoeletronico.dtos.CriarUsuarioRequest;
+import com.empresa.mvcpontoeletronico.dtos.UsuarioResponse;
+import com.empresa.mvcpontoeletronico.entities.RoleType;
 import com.empresa.mvcpontoeletronico.entities.Usuario;
 import com.empresa.mvcpontoeletronico.services.UsuarioService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.Arrays;
 
 /**
  * Controller para gerenciamento de usuários
@@ -28,10 +33,19 @@ public class UsuarioController {
      * Lista todos os usuários
      */
     @GetMapping
-    public ResponseEntity<List<Usuario>> listarUsuarios() {
+    public ResponseEntity<List<UsuarioResponse>> listarUsuarios() {
         log.debug("GET /api/usuarios - Listando todos os usuários");
-        List<Usuario> usuarios = usuarioService.listarTodos();
+        List<UsuarioResponse> usuarios = usuarioService.listarTodos();
         return ResponseEntity.ok(usuarios);
+    }
+    
+    /**
+     * Retorna as roles disponíveis
+     */
+    @GetMapping("/roles")
+    public ResponseEntity<List<RoleType>> listarRoles() {
+        log.debug("GET /api/usuarios/roles - Listando roles disponíveis");
+        return ResponseEntity.ok(Arrays.asList(RoleType.values()));
     }
     
     /**
@@ -70,14 +84,27 @@ public class UsuarioController {
      * Cria um novo usuário
      */
     @PostMapping
-    public ResponseEntity<Usuario> criarUsuario(@Valid @RequestBody Usuario usuario) {
-        log.debug("POST /api/usuarios - Criando novo usuário: {}", usuario.getNome());
+    public ResponseEntity<?> criarUsuario(@Valid @RequestBody CriarUsuarioRequest request) {
+        log.info("POST /api/usuarios - Tentando criar usuário: {} ({})", request.getNome(), request.getEmail());
+        log.debug("Request completo recebido: nome='{}', email='{}', senha='{}', cpf='{}', role='{}'", 
+                request.getNome(), request.getEmail(), 
+                request.getSenha() != null ? "[PRESENTE]" : "[NULL]", 
+                request.getCpf(), request.getRole());
+        
         try {
-            Usuario usuarioCriado = usuarioService.salvar(usuario);
+            UsuarioResponse usuarioCriado = usuarioService.criarUsuario(request);
+            log.info("Usuário criado com sucesso: {} (ID: {})", usuarioCriado.getNome(), usuarioCriado.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(usuarioCriado);
         } catch (IllegalArgumentException e) {
-            log.warn("Erro ao criar usuário: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            log.warn("Erro de validação ao criar usuário: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Erro ao criar usuário: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erro inesperado ao criar usuário: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Erro interno do servidor"));
         }
     }
     
@@ -85,30 +112,56 @@ public class UsuarioController {
      * Atualiza um usuário existente
      */
     @PutMapping("/{id}")
-    public ResponseEntity<Usuario> atualizarUsuario(@PathVariable UUID id, 
-                                                   @Valid @RequestBody Usuario usuario) {
+    public ResponseEntity<?> atualizarUsuario(@PathVariable UUID id, 
+                                             @Valid @RequestBody CriarUsuarioRequest request) {
         log.debug("PUT /api/usuarios/{} - Atualizando usuário", id);
         try {
-            Usuario usuarioAtualizado = usuarioService.atualizar(id, usuario);
+            UsuarioResponse usuarioAtualizado = usuarioService.atualizar(id, request);
             return ResponseEntity.ok(usuarioAtualizado);
-        } catch (IllegalArgumentException e) {
+        } catch (RuntimeException e) {
             log.warn("Erro ao atualizar usuário: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
     
     /**
-     * Remove um usuário
+     * Desativa um usuário (soft delete)
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> removerUsuario(@PathVariable UUID id) {
-        log.debug("DELETE /api/usuarios/{} - Removendo usuário", id);
+    public ResponseEntity<?> desativarUsuario(@PathVariable UUID id) {
+        log.debug("DELETE /api/usuarios/{} - Desativando usuário", id);
         try {
-            usuarioService.remover(id);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            log.warn("Erro ao remover usuário: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
+            usuarioService.desativarUsuario(id);
+            return ResponseEntity.ok().body(Map.of("message", "Usuário desativado com sucesso"));
+        } catch (RuntimeException e) {
+            log.warn("Erro ao desativar usuário: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    /**
+     * Reativa um usuário
+     */
+    @PutMapping("/{id}/reativar")
+    public ResponseEntity<?> reativarUsuario(@PathVariable UUID id) {
+        log.debug("PUT /api/usuarios/{}/reativar - Reativando usuário", id);
+        try {
+            usuarioService.reativarUsuario(id);
+            return ResponseEntity.ok().body(Map.of("message", "Usuário reativado com sucesso"));
+        } catch (RuntimeException e) {
+            log.warn("Erro ao reativar usuário: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+    
+    /**
+     * Classe para resposta de erro
+     */
+    public static class ErrorResponse {
+        public final String message;
+        
+        public ErrorResponse(String message) {
+            this.message = message;
         }
     }
 }

@@ -68,6 +68,8 @@ public class SolicitacaoService {
             .usuario(usuario)
             .motivo(motivo)
             .descricao(request.getDescricao())
+            .diasConsecutivos(request.getDiasConsecutivos() != null ? request.getDiasConsecutivos() : false)
+            .quantidadeDias(request.getQuantidadeDias())
             .status(StatusSolicitacao.ABERTO);
         
         // Adiciona anexo se fornecido
@@ -93,7 +95,7 @@ public class SolicitacaoService {
     public List<SolicitacaoResponse> listarSolicitacoesPorUsuario(UUID usuarioId) {
         log.debug("Listando solicitações do usuário: {}", usuarioId);
         
-        List<Solicitacao> solicitacoes = solicitacaoRepository.findByUsuarioIdOrderByCreatedAtDesc(usuarioId);
+        List<Solicitacao> solicitacoes = solicitacaoRepository.findByUsuarioIdOrderByDataReferenciaDesc(usuarioId);
         return solicitacoes.stream()
                           .map(this::mapToResponse)
                           .collect(Collectors.toList());
@@ -199,9 +201,28 @@ public class SolicitacaoService {
             .anexoTipo(solicitacao.getAnexoTipo())
             .anexoTamanho(solicitacao.getAnexoTamanho())
             .temAnexo(solicitacao.getAnexoConteudo() != null && solicitacao.getAnexoConteudo().length > 0)
+            .diasConsecutivos(solicitacao.getDiasConsecutivos())
+            .quantidadeDias(solicitacao.getQuantidadeDias())
             .createdAt(solicitacao.getCreatedAt())
             .updatedAt(solicitacao.getUpdatedAt())
             .build();
+    }
+    
+    /**
+     * Conta o número de solicitações em aberto no sistema
+     */
+    public Long contarSolicitacoesEmAberto() {
+        log.debug("Contando solicitações em aberto");
+        return solicitacaoRepository.countByStatus(StatusSolicitacao.ABERTO);
+    }
+    
+    /**
+     * Busca a solicitação mais recente em aberto no sistema
+     */
+    public SolicitacaoResponse buscarSolicitacaoMaisRecenteAberta() {
+        log.debug("Buscando solicitação mais recente em aberto");
+        List<Solicitacao> solicitacoes = solicitacaoRepository.findTop1ByStatusOrderByDataReferenciaDesc(StatusSolicitacao.ABERTO);
+        return solicitacoes.isEmpty() ? null : mapToResponse(solicitacoes.get(0));
     }
     
     /**

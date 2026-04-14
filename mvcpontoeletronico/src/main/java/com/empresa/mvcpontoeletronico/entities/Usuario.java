@@ -41,10 +41,28 @@ public class Usuario {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
     
+    @NotBlank(message = "Senha é obrigatória")
+    @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+    @Column(name = "senha", nullable = false)
+    private String senha;
+    
     @NotBlank(message = "CPF é obrigatório")
     @Size(max = 14, message = "CPF deve ter formato XXX.XXX.XXX-XX")
     @Column(name = "cpf", nullable = false, unique = true)
     private String cpf;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    @Builder.Default
+    private RoleType role = RoleType.FUNCIONARIO;
+    
+    @Column(name = "ativo", nullable = false)
+    @Builder.Default
+    private Boolean ativo = true;
+    
+    @Column(name = "primeiro_login", nullable = false)
+    @Builder.Default
+    private Boolean primeiroLogin = true;
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

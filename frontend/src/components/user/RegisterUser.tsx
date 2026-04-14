@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -7,7 +7,11 @@ import {
   TextField,
   Button,
   Alert,
-  Snackbar
+  Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   PersonAdd as PersonAddIcon,
@@ -15,12 +19,13 @@ import {
   Clear as ClearIcon
 } from '@mui/icons-material';
 import { useApi } from '../../hooks/useApi';
-import type { Usuario } from '../../types';
+import type { CriarUsuarioRequest, RoleType } from '../../types';
 
 interface FormData {
   nome: string;
   email: string;
   cpf: string;
+  role: RoleType;
 }
 
 const RegisterUser: React.FC = () => {
@@ -30,9 +35,11 @@ const RegisterUser: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     email: '',
-    cpf: ''
+    cpf: '',
+    role: 'FUNCIONARIO'
   });
 
+  const [roles, setRoles] = useState<RoleType[]>([]);
   const [snackbar, setSnackbar] = useState({ 
     open: false, 
     message: '', 
@@ -41,12 +48,38 @@ const RegisterUser: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    // Carregar roles disponíveis
+    const loadRoles = async () => {
+      try {
+        const response = await fetch('/api/usuarios/roles');
+        if (response.ok) {
+          const rolesData = await response.json();
+          setRoles(rolesData);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar roles:', error);
+        // Fallback para roles hardcoded
+        setRoles(['FUNCIONARIO', 'ADMIN']);
+      }
+    };
+    
+    loadRoles();
+  }, []);
+
   const handleInputChange = (field: keyof FormData) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setFormData(prev => ({
       ...prev,
       [field]: event.target.value
+    }));
+  };
+
+  const handleRoleChange = (event: any) => {
+    setFormData(prev => ({
+      ...prev,
+      role: event.target.value as RoleType
     }));
   };
 
@@ -66,6 +99,11 @@ const RegisterUser: React.FC = () => {
 
     if (!formData.cpf.trim()) {
       return 'CPF é obrigatório';
+    }
+
+    const cpfNumbers = formData.cpf.replace(/\D/g, '');
+    if (cpfNumbers.length !== 11) {
+      return 'CPF deve ter 11 dígitos';
     }
 
     return null;
@@ -110,18 +148,40 @@ const RegisterUser: React.FC = () => {
     setLoading(true);
 
     try {
-      // Prepara dados para MVC
-      const userData: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'> = {
+      // Prepara dados para o novo endpoint - senha temporária = CPF
+      const cpfNumbers = formData.cpf.replace(/\D/g, '');
+      
+      // Validação local para garantir que CPF não está vazio
+      if (!cpfNumbers || cpfNumbers.length !== 11) {
+        setSnackbar({ 
+          open: true, 
+          message: 'CPF deve ter exatamente 11 dígitos', 
+          severity: 'error' 
+        });
+        return;
+      }
+      
+      console.log('Dados sendo enviados:', {
+        nome: formData.nome.trim(),
+        email: formData.email.trim(), 
+        senha: cpfNumbers,
+        cpf: cpfNumbers,
+        role: formData.role
+      });
+      
+      const userData: CriarUsuarioRequest = {
         nome: formData.nome.trim(),
         email: formData.email.trim(),
-        cpf: formData.cpf.replace(/\D/g, '')
+        senha: cpfNumbers, // Senha temporária é o CPF
+        cpf: cpfNumbers,
+        role: formData.role
       };
 
       await criarUsuario(userData);
 
       setSnackbar({ 
         open: true, 
-        message: 'Usuário criado com sucesso!', 
+        message: 'Usuário criado com sucesso! A senha inicial é o CPF (será necessário alterar no primeiro login).', 
         severity: 'success' 
       });
 
@@ -129,10 +189,11 @@ const RegisterUser: React.FC = () => {
       setFormData({
         nome: '',
         email: '',
-        cpf: ''
+        cpf: '',
+        role: 'FUNCIONARIO'
       });
     } catch (error: any) {
-      const errorMessage = error.message || 'Erro ao criar usuário';
+      const errorMessage = error.userMessage || error.message || 'Erro ao criar usuário';
       setSnackbar({ 
         open: true, 
         message: errorMessage, 
@@ -147,7 +208,8 @@ const RegisterUser: React.FC = () => {
     setFormData({
       nome: '',
       email: '',
-      cpf: ''
+      cpf: '',
+      role: 'FUNCIONARIO'
     });
   };
 
@@ -191,18 +253,44 @@ const RegisterUser: React.FC = () => {
                 </Box>
               </Box>
 
+              {/* Alerta informativo */}
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <strong>Informação importante:</strong> A senha inicial do usuário será o CPF (somente números). 
+                O usuário deverá alterar a senha no primeiro login.
+              </Alert>
+
               {/* Linha 2: CPF */}
-              <Box sx={{ flex: 1, minWidth: 280 }}>
-                <TextField
-                  fullWidth
-                  label="CPF"
-                  value={formData.cpf}
-                  onChange={handleCPFChange}
-                  placeholder="000.000.000-00"
-                  required
-                  variant="outlined"
-                  inputProps={{ maxLength: 14 }}
-                />
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ flex: 1, minWidth: 280 }}>
+                  <TextField
+                    fullWidth
+                    label="CPF"
+                    value={formData.cpf}
+                    onChange={handleCPFChange}
+                    placeholder="000.000.000-00"
+                    required
+                    variant="outlined"
+                    inputProps={{ maxLength: 14 }}
+                    helperText="Será utilizado como senha temporária"
+                  />
+                </Box>
+              </Box>
+
+              {/* Linha 3: Role */}
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ flex: 1, maxWidth: 300 }}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={formData.role}
+                      label="Role"
+                      onChange={handleRoleChange}
+                    >
+                      <MenuItem value="FUNCIONARIO">Funcionário</MenuItem>
+                      <MenuItem value="ADMIN">Administrador</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
               </Box>
 
               {/* Botões de ação */}

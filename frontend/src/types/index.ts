@@ -12,17 +12,43 @@ export const TipoPonto = {
 
 export type TipoPonto = typeof TipoPonto[keyof typeof TipoPonto];
 
+// Roles do sistema
+export const RoleType = {
+  FUNCIONARIO: 'FUNCIONARIO',
+  ADMIN: 'ADMIN'
+} as const;
+
+export type RoleType = typeof RoleType[keyof typeof RoleType];
+
 // Usuario - estrutura comum
 export interface Usuario {
   id: string;
   nome: string;
   email: string;
   cpf?: string; // apenas no backend MVC
+  role?: RoleType; // role do usuário
   cargo?: string; // apenas no backend Clean
   departamento?: string; // apenas no backend Clean
-  ativo?: boolean; // apenas no backend Clean
+  ativo?: boolean; // indica se usuário está ativo
+  primeiroLogin?: boolean; // indica se é o primeiro login do usuário
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Request para criar usuário
+export interface CriarUsuarioRequest {
+  nome: string;
+  email: string;
+  senha: string;
+  cpf: string;
+  role: RoleType;
+}
+
+// Request para trocar senha
+export interface TrocaSenhaRequest {
+  senhaAtual: string;
+  novaSenha: string;
+  confirmarSenha: string;
 }
 
 // PontoEletronico - estrutura comum
@@ -104,6 +130,9 @@ export interface AppContextType {
   loggedUser: Usuario | null;
   handleLogin: (user: Usuario) => void;
   handleLogout: () => void;
+  // Sistema de notificação de pontos
+  pontosUpdateTrigger: number;
+  notifyPontosUpdate: () => void;
 }
 
 // Filtros para consulta de pontos
@@ -129,6 +158,7 @@ export interface PontoAgrupado {
   saida2?: string; // HH:mm
   entrada3?: string; // HH:mm
   saida3?: string; // HH:mm
+  horasTrabalhadas?: string; // Horas totais trabalhadas no formato HH:mm
   observacao?: string;
 }
 
@@ -165,6 +195,8 @@ export interface Solicitacao {
   anexoTipo?: string;
   anexoTamanho?: number;
   temAnexo: boolean;
+  diasConsecutivos?: boolean;
+  quantidadeDias?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -178,4 +210,30 @@ export interface CriarSolicitacaoRequest {
   anexoTipo?: string;
   anexoTamanho?: number;
   anexoConteudo?: Uint8Array;
+  diasConsecutivos?: boolean;
+  quantidadeDias?: number;
+}
+
+// Configurações da Empresa
+export interface ConfiguracaoEmpresa {
+  id?: string;
+  nomeEmpresa: string;
+  horarioCheckin: string; // HH:mm
+  horarioCheckout: string; // HH:mm
+  fotoEmpresa?: string; // base64 ou URL
+  logoEmpresaNome?: string; // nome do arquivo original
+  logoEmpresaTipo?: string; // tipo MIME
+  logoEmpresaTamanho?: number; // tamanho em bytes
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AtualizarConfiguracaoRequest {
+  nomeEmpresa: string;
+  horarioCheckin: string;
+  horarioCheckout: string;
+  fotoEmpresa?: string;
+  logoEmpresaNome?: string;
+  logoEmpresaTipo?: string;
+  logoEmpresaTamanho?: number;
 }
