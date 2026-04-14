@@ -31,7 +31,8 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
-  FormLabel
+  FormLabel,
+  Pagination
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -89,6 +90,10 @@ const Solicitacoes: React.FC = () => {
   const [dataInicial, setDataInicial] = useState<Date | null>(null);
   const [dataFinal, setDataFinal] = useState<Date | null>(null);
   const [statusSelecionado, setStatusSelecionado] = useState<string>('TODOS');
+
+  // Estados para paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const SOLICITACOES_POR_PAGINA = 5;
 
   // Formulário de nova solicitação
   const [novasSolicitacao, setNovaSolicitacao] = useState<CriarSolicitacaoRequest>({
@@ -565,11 +570,35 @@ const Solicitacoes: React.FC = () => {
     return solicitacoesFiltradas;
   };
 
+  // Função para obter solicitações da página atual
+  const obterSolicitacoesPaginadas = () => {
+    const solicitacoesFiltradas = getsolicitacoesFiltradas();
+    const inicio = (paginaAtual - 1) * SOLICITACOES_POR_PAGINA;
+    const fim = inicio + SOLICITACOES_POR_PAGINA;
+    return solicitacoesFiltradas.slice(inicio, fim);
+  };
+
+  // Função para calcular total de páginas
+  const calcularTotalPaginas = (): number => {
+    const solicitacoesFiltradas = getsolicitacoesFiltradas();
+    return Math.ceil(solicitacoesFiltradas.length / SOLICITACOES_POR_PAGINA);
+  };
+
   const limparFiltros = () => {
     setDataInicial(null);
     setDataFinal(null);
     setStatusSelecionado('TODOS');
+    setPaginaAtual(1); // Volta para primeira página ao limpar filtros
   };
+
+  const handleMudancaPagina = (event: React.ChangeEvent<unknown>, novaPagina: number) => {
+    setPaginaAtual(novaPagina);
+  };
+
+  // Resetar página quando filtros mudarem
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [dataInicial, dataFinal, statusSelecionado]);
 
   return (
     <Box>
@@ -774,50 +803,83 @@ const Solicitacoes: React.FC = () => {
             {loading ? (
               <Typography>Carregando...</Typography>
             ) : getsolicitacoesFiltradas().length > 0 ? (
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell><strong>Data Referência</strong></TableCell>
-                      <TableCell><strong>Motivo</strong></TableCell>
-                      <TableCell><strong>Status</strong></TableCell>
-                      <TableCell><strong>Criado em</strong></TableCell>
-                      <TableCell><strong>Ações</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {getsolicitacoesFiltradas().map((solicitacao) => (
-                      <TableRow key={solicitacao.id}>
-                        <TableCell>
-                          {format(parseISO(solicitacao.dataReferencia + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>{solicitacao.motivo.descricao}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={getStatusLabel(solicitacao.status)}
-                            color={getStatusColor(solicitacao.status)}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {format(new Date(solicitacao.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            onClick={(event) => {
-                              setMenuAnchor(event.currentTarget);
-                              setSolicitacaoSelecionada(solicitacao);
-                            }}
-                          >
-                            <MoreVertIcon />
-                          </IconButton>
-                        </TableCell>
+              <>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><strong>Data Referência</strong></TableCell>
+                        <TableCell><strong>Motivo</strong></TableCell>
+                        <TableCell><strong>Status</strong></TableCell>
+                        <TableCell><strong>Criado em</strong></TableCell>
+                        <TableCell><strong>Ações</strong></TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableHead>
+                    <TableBody>
+                      {obterSolicitacoesPaginadas().map((solicitacao) => (
+                        <TableRow key={solicitacao.id}>
+                          <TableCell>
+                            {format(parseISO(solicitacao.dataReferencia + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell>{solicitacao.motivo.descricao}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={getStatusLabel(solicitacao.status)}
+                              color={getStatusColor(solicitacao.status)}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(solicitacao.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell>
+                            <IconButton
+                              size="small"
+                              onClick={(event) => {
+                                setMenuAnchor(event.currentTarget);
+                                setSolicitacaoSelecionada(solicitacao);
+                              }}
+                            >
+                              <MoreVertIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                
+                {/* Informações de paginação e controles */}
+                {(() => {
+                  const totalPaginas = calcularTotalPaginas();
+                  const solicitacoesFiltradas = getsolicitacoesFiltradas();
+                  
+                  return totalPaginas > 1 && (
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      mt: 2,
+                      px: 2 
+                    }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Mostrando {((paginaAtual - 1) * SOLICITACOES_POR_PAGINA) + 1} - {Math.min(paginaAtual * SOLICITACOES_POR_PAGINA, solicitacoesFiltradas.length)} de {solicitacoesFiltradas.length} solicitações
+                      </Typography>
+                      
+                      <Pagination
+                        count={totalPaginas}
+                        page={paginaAtual}
+                        onChange={handleMudancaPagina}
+                        color="primary"
+                        shape="rounded"
+                        showFirstButton
+                        showLastButton
+                      />
+                    </Box>
+                  );
+                })()
+                }
+              </>
             ) : solicitacoes.length === 0 ? (
               <Typography color="text.secondary">
                 Nenhuma solicitação encontrada para este usuário
@@ -943,7 +1005,7 @@ const Solicitacoes: React.FC = () => {
 
       {/* Dialog para Nova Solicitação */}
       <Dialog open={dialogAberto} onClose={handleFecharDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Abrir Nova Solicitação</DialogTitle>
+        <DialogTitle color='black'>Abrir Nova Solicitação</DialogTitle>
         <DialogContent>
           <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={dateFnsLocale}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>

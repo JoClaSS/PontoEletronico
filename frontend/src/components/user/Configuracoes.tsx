@@ -279,7 +279,7 @@ const Configuracoes: React.FC = () => {
               </Typography>
             </Box>
             
-            {/* Botão para carregar configurações */}
+            {/* Botão para carregar configurações 
             <Button
               variant="outlined"
               onClick={() => carregarConfiguracoes(true)}
@@ -288,7 +288,7 @@ const Configuracoes: React.FC = () => {
               size="small"
             >
               {loadingConf ? 'Carregando...' : configuracaoCarregada ? 'Recarregar' : 'Carregar Configurações'}
-            </Button>
+            </Button> */}
           </Box>
 
           <Box component="form" onSubmit={handleSubmit}>

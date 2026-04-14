@@ -328,9 +328,33 @@ const ViewPoints: React.FC = () => {
     const grupos: Map<string, PontoAgrupado> = new Map();
     
     pontosHook.data.forEach(ponto => {
-      // Melhorar tratamento da data para evitar problemas de timezone
+      // Corrigir problema de timezone - extrair apenas a data string sem interpretação de timezone
+      let dataStr: string;
+      
+      // Se dataHora já contém a data no formato esperado, extrair diretamente
+      if (typeof ponto.dataHora === 'string') {
+        // Se é ISO string (ex: "2024-04-14T10:30:00"), extrair apenas a parte da data
+        if (ponto.dataHora.includes('T')) {
+          dataStr = ponto.dataHora.split('T')[0]; // "2024-04-14"
+        }
+        // Se já é formato de data (ex: "2024-04-14") 
+        else if (ponto.dataHora.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          dataStr = ponto.dataHora;
+        }
+        // Fallback para outros formatos
+        else {
+          const dataObj = new Date(ponto.dataHora);
+          // Usar toISOString e pegar apenas a parte da data para evitar problemas de timezone
+          dataStr = dataObj.toISOString().split('T')[0];
+        }
+      } else {
+        // Se dataHora é um objeto Date
+        const dataObj = ponto.dataHora as Date;
+        dataStr = dataObj.toISOString().split('T')[0];
+      }
+      
+      // Extrair hora dos dados de dataHora
       const dataObj = new Date(ponto.dataHora);
-      const dataStr = format(dataObj, 'yyyy-MM-dd');
       const horaStr = format(dataObj, 'HH:mm');
       
       if (!grupos.has(dataStr)) {
@@ -552,7 +576,7 @@ const ViewPoints: React.FC = () => {
                       {agruparPontosPorData().map((registro) => (
                         <TableRow key={registro.data}>
                           <TableCell>
-                            <strong>{format(new Date(registro.data), "dd/MM/yyyy", { locale: ptBR })}</strong>
+                            <strong>{dayjs(registro.data).format('DD/MM/YYYY')}</strong>
                           </TableCell>
                           <TableCell align="center">
                             {registro.entrada1 ? (

@@ -27,7 +27,8 @@ import {
   IconButton,
   Tooltip,
   Chip,
-  DialogContentText
+  DialogContentText,
+  Pagination
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -76,6 +77,10 @@ const UserManagement: React.FC = () => {
   // Estados para filtros
   const [filtroNome, setFiltroNome] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos');
+
+  // Estados para paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const USUARIOS_POR_PAGINA = 5;
 
   // Carrega usuários ao montar o componente
   useEffect(() => {
@@ -254,10 +259,34 @@ const UserManagement: React.FC = () => {
     });
   };
 
+  // Função para obter usuários da página atual
+  const obterUsuariosPaginados = (): Usuario[] => {
+    const usuariosFiltrados = filtrarUsuarios();
+    const inicio = (paginaAtual - 1) * USUARIOS_POR_PAGINA;
+    const fim = inicio + USUARIOS_POR_PAGINA;
+    return usuariosFiltrados.slice(inicio, fim);
+  };
+
+  // Função para calcular total de páginas
+  const calcularTotalPaginas = (): number => {
+    const usuariosFiltrados = filtrarUsuarios();
+    return Math.ceil(usuariosFiltrados.length / USUARIOS_POR_PAGINA);
+  };
+
   const handleLimparFiltros = () => {
     setFiltroNome('');
     setFiltroStatus('todos');
+    setPaginaAtual(1); // Volta para primeira página ao limpar filtros
   };
+
+  const handleMudancaPagina = (event: React.ChangeEvent<unknown>, novaPagina: number) => {
+    setPaginaAtual(novaPagina);
+  };
+
+  // Resetar página quando filtros mudarem
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [filtroNome, filtroStatus]);
 
   const renderUserTable = () => {
     if (loading) {
@@ -277,6 +306,8 @@ const UserManagement: React.FC = () => {
     }
 
     const usuariosFiltrados = filtrarUsuarios();
+    const usuariosPaginados = obterUsuariosPaginados();
+    const totalPaginas = calcularTotalPaginas();
 
     if (!usuarios || usuarios.length === 0) {
       return (
@@ -305,62 +336,89 @@ const UserManagement: React.FC = () => {
     }
 
     return (
-      <TableContainer component={Paper} sx={{ mt: 2 }}>
-        <Table>
-          <TableHead sx={{ backgroundColor: 'grey.100' }}>
-            <TableRow>
-              <TableCell><strong>Nome</strong></TableCell>
-              <TableCell><strong>Role</strong></TableCell>
-              <TableCell><strong>Status</strong></TableCell>
-              <TableCell><strong>Data Criação</strong></TableCell>
-              <TableCell align="center"><strong>Ações</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {usuariosFiltrados.map((usuario) => (
-              <TableRow key={usuario.id} hover>
-                <TableCell>{usuario.nome}</TableCell>
-                <TableCell>
-                  {usuario.role === 'ADMIN' ? 'Administrador' : usuario.role === 'FUNCIONARIO' ? 'Funcionário' : usuario.role || '-'}
-                </TableCell>
-                <TableCell>
-                  <Chip 
-                    label={usuario.ativo !== false ? 'Ativo' : 'Inativo'}
-                    color={usuario.ativo !== false ? 'success' : 'error'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {usuario.createdAt ? formatDate(usuario.createdAt) : '-'}
-                </TableCell>
-                <TableCell align="center">
-                  <Tooltip title="Visualizar">
-                    <IconButton 
-                      onClick={() => handleViewUser(usuario)} 
-                      color="primary"
+      <>
+        <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <Table>
+            <TableHead sx={{ backgroundColor: 'grey.100' }}>
+              <TableRow>
+                <TableCell><strong>Nome</strong></TableCell>
+                <TableCell><strong>Role</strong></TableCell>
+                <TableCell><strong>Status</strong></TableCell>
+                <TableCell><strong>Data Criação</strong></TableCell>
+                <TableCell align="center"><strong>Ações</strong></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {usuariosPaginados.map((usuario) => (
+                <TableRow key={usuario.id} hover>
+                  <TableCell>{usuario.nome}</TableCell>
+                  <TableCell>
+                    {usuario.role === 'ADMIN' ? 'Administrador' : usuario.role === 'FUNCIONARIO' ? 'Funcionário' : usuario.role || '-'}
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={usuario.ativo !== false ? 'Ativo' : 'Inativo'}
+                      color={usuario.ativo !== false ? 'success' : 'error'}
                       size="small"
-                    >
-                      <VisibilityIcon />
-                    </IconButton>
-                  </Tooltip>
-                  {usuario.ativo !== false && (
-                    <Tooltip title="Desativar Usuário">
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {usuario.createdAt ? formatDate(usuario.createdAt) : '-'}
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="Visualizar">
                       <IconButton 
-                        onClick={() => handleDeleteUser(usuario)} 
-                        color="error"
+                        onClick={() => handleViewUser(usuario)} 
+                        color="primary"
                         size="small"
-                        sx={{ ml: 1 }}
                       >
-                        <DeleteIcon />
+                        <VisibilityIcon />
                       </IconButton>
                     </Tooltip>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                    {usuario.ativo !== false && (
+                      <Tooltip title="Desativar Usuário">
+                        <IconButton 
+                          onClick={() => handleDeleteUser(usuario)} 
+                          color="error"
+                          size="small"
+                          sx={{ ml: 1 }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        
+        {/* Informações de paginação e controles */}
+        {totalPaginas > 1 && (
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mt: 2,
+            px: 2 
+          }}>
+            <Typography variant="body2" color="text.secondary">
+              Mostrando {((paginaAtual - 1) * USUARIOS_POR_PAGINA) + 1} - {Math.min(paginaAtual * USUARIOS_POR_PAGINA, usuariosFiltrados.length)} de {usuariosFiltrados.length} usuários
+            </Typography>
+            
+            <Pagination
+              count={totalPaginas}
+              page={paginaAtual}
+              onChange={handleMudancaPagina}
+              color="primary"
+              shape="rounded"
+              showFirstButton
+              showLastButton
+            />
+          </Box>
+        )}
+      </>
     );
   };
 
