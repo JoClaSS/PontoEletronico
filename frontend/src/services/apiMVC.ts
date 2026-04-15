@@ -5,7 +5,7 @@ const apiMVC = createApiClient('MVC');
 
 // Função para mapear resposta do MVC para o formato esperado pelo frontend
 const mapMVCResponseToFrontend = (mvcResponse: any): PontoEletronico => {
-  console.log('[MVC] Mapeando resposta do backend:', mvcResponse);
+  //console.log('[MVC] Mapeando resposta do backend:', mvcResponse);
   
   const mapped = {
     id: mvcResponse.id,
@@ -23,7 +23,7 @@ const mapMVCResponseToFrontend = (mvcResponse: any): PontoEletronico => {
     createdAt: mvcResponse.createdAt
   };
   
-  console.log('[MVC] Objeto mapeado:', mapped);
+  //console.log('[MVC] Objeto mapeado:', mapped);
   return mapped;
 };
 
@@ -70,7 +70,7 @@ export const apiMVCService = {
 
   // Pontos Eletrônicos
   async registrarPonto(data: RegistrarPontoRequest): Promise<PontoEletronico> {
-    console.log('[MVC] Dados recebidos para registrar ponto:', data);
+    //console.log('[MVC] Dados recebidos para registrar ponto:', data);
     
     // Adaptação para o formato do backend MVC
     const payload: any = {
@@ -88,7 +88,7 @@ export const apiMVCService = {
       payload.observacao = data.observacao;
     }
     
-    console.log('[MVC] Payload final:', payload);
+    //console.log('[MVC] Payload final:', payload);
     
     if (!payload.usuarioId) {
       throw new Error('usuarioId é obrigatório para registrar ponto');
@@ -104,15 +104,15 @@ export const apiMVCService = {
       url += `?data=${data}`;
     }
     
-    console.log('[MVC] Buscando pontos - URL:', url);
-    console.log('[MVC] UsuarioId:', usuarioId);
-    console.log('[MVC] Data:', data);
+    //console.log('[MVC] Buscando pontos - URL:', url);
+    //console.log('[MVC] UsuarioId:', usuarioId);
+    //console.log('[MVC] Data:', data);
     
     const response = await apiMVC.get(url);
-    console.log('[MVC] Response data:', response.data);
+    //console.log('[MVC] Response data:', response.data);
     
     const mappedData = response.data.map(mapMVCResponseToFrontend);
-    console.log('[MVC] Dados mapeados:', mappedData);
+    //console.log('[MVC] Dados mapeados:', mappedData);
     
     return mappedData;
   },

@@ -93,7 +93,7 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
   // Função para atualizar o estado de autenticação
   const refreshAuthState = () => {
     const authenticated = keycloakService.isAuthenticated();
-    console.log('RefreshAuthState - isAuthenticated:', authenticated);
+    //console.log('RefreshAuthState - isAuthenticated:', authenticated);
     
     setIsAuthenticated(authenticated);
     

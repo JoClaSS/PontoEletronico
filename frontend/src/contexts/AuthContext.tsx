@@ -43,15 +43,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     hasInitialized.current = true;
 
     const initAuth = async () => {
-      console.log('🔐 Iniciando autenticação...');
+      //console.log('🔐 Iniciando autenticação...');
       try {
         // Verificar se há token no localStorage (inicialização simples)
         const isAuthenticated = authService.isAuthenticated();
-        console.log('🔐 Token encontrado:', isAuthenticated);
+        //console.log('🔐 Token encontrado:', isAuthenticated);
         
         if (isAuthenticated) {
           const userData = authService.getUser();
-          console.log('🔐 Dados do usuário:', userData);
+          //console.log('🔐 Dados do usuário:', userData);
           setUser(userData);
           setIsAuthenticated(true);
           // Verificar se é primeiro login
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setPrimeiroLogin(true);
           }
         } else {
-          console.log('🔐 Usuário não autenticado');
+          //console.log('🔐 Usuário não autenticado');
           setIsAuthenticated(false);
           setUser(null);
         }
@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAuthenticated(false);
         setUser(null);
       } finally {
-        console.log('🔐 Autenticação inicializada, loading:', false);
+        //console.log('🔐 Autenticação inicializada, loading:', false);
         setLoading(false);
       }
     };

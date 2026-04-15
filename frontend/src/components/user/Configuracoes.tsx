@@ -228,7 +228,7 @@ const Configuracoes: React.FC = () => {
       };
 
       // Log para debug
-      console.log('Dados sendo enviados:', JSON.stringify(request, null, 2));
+      //console.log('Dados sendo enviados:', JSON.stringify(request, null, 2));
 
       await apiService.salvarConfiguracoes(request);
 

@@ -51,7 +51,7 @@ const RegisterPoint: React.FC = () => {
           checkout: config.horarioCheckout || '18:00'
         });
       } catch (error) {
-        console.log('Erro ao carregar horários - usando padrão:', error);
+        console.log('Erro ao carregar horários', error);
       }
     };
     carregarHorarios();
@@ -95,10 +95,10 @@ const RegisterPoint: React.FC = () => {
 
   // Carrega pontos do usuário quando selecionado
   useEffect(() => {
-    console.log('[RegisterPoint] useEffect pontos - selectedUser:', selectedUser?.id);
+    //console.log('[RegisterPoint] useEffect pontos - selectedUser:', selectedUser?.id);
     if (selectedUser?.id) {
       const hoje = format(new Date(), 'yyyy-MM-dd');
-      console.log('[RegisterPoint] Carregando pontos para data:', hoje);
+      //console.log('[RegisterPoint] Carregando pontos para data:', hoje);
       pontosHook.loadPontosPorData(selectedUser.id, hoje);
     }
   }, [selectedUser]);
@@ -106,7 +106,7 @@ const RegisterPoint: React.FC = () => {
   // Escuta notificações de atualizações de pontos e recarrega dados
   useEffect(() => {
     if (pontosUpdateTrigger > 0 && selectedUser?.id) {
-      console.log('[RegisterPoint] Recebida notificação de atualização de pontos, recarregando...');
+      //console.log('[RegisterPoint] Recebida notificação de atualização de pontos, recarregando...');
       const hoje = format(new Date(), 'yyyy-MM-dd');
       pontosHook.loadPontosPorData(selectedUser.id, hoje);
     }
@@ -119,7 +119,7 @@ const RegisterPoint: React.FC = () => {
   };
 
   const handleRegistrarPonto = async () => {
-    console.log('[RegisterPoint] selectedUser:', selectedUser);
+    //console.log('[RegisterPoint] selectedUser:', selectedUser);
     
     if (!selectedUser) {
       setSnackbar({
@@ -145,7 +145,7 @@ const RegisterPoint: React.FC = () => {
         usuarioId: selectedUser.id
       };
       
-      console.log('[RegisterPoint] Enviando dados:', pontoData);
+      //console.log('[RegisterPoint] Enviando dados:', pontoData);
 
       const novoPonto = await pontosHook.registrarPonto(pontoData);
 

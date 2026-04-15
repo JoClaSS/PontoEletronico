@@ -151,7 +151,7 @@ const ViewPoints: React.FC = () => {
   // Escuta notificações de atualizações de pontos e recarrega dados
   useEffect(() => {
     if (pontosUpdateTrigger > 0 && selectedUser) {
-      console.log('[ViewPoints] Recebida notificação de atualização de pontos, recarregando...');
+      //console.log('[ViewPoints] Recebida notificação de atualização de pontos, recarregando...');
       buscarPontos();
     }
   }, [pontosUpdateTrigger, selectedUser, buscarPontos]);
@@ -195,7 +195,7 @@ const ViewPoints: React.FC = () => {
       return;
     }
 
-    console.log('Dados dos pontos:', pontosHook.data); // Debug
+    //console.log('Dados dos pontos:', pontosHook.data); // Debug
     
     const doc = new jsPDF('landscape');
     const usuario = selectedUser;
@@ -203,7 +203,7 @@ const ViewPoints: React.FC = () => {
     // Usar a mesma função de agrupamento da tabela
     const registrosAgrupados = agruparPontosPorData();
     
-    console.log('Registros agrupados:', registrosAgrupados.length); // Debug
+    //console.log('Registros agrupados:', registrosAgrupados.length); // Debug
     
     // Verificação de segurança
     if (!usuario) {
@@ -263,15 +263,15 @@ const ViewPoints: React.FC = () => {
     if (registrosAgrupados.length === 0) {
       doc.setFontSize(10);
       doc.text('Nenhum registro encontrado para o período selecionado.', 20, currentY);
-      console.log('Nenhum registro agrupado encontrado para exibir'); // Debug
+      //console.log('Nenhum registro agrupado encontrado para exibir'); // Debug
     } else {
-      console.log(`Total de ${registrosAgrupados.length} registros agrupados para exibir`); // Debug
+      //console.log(`Total de ${registrosAgrupados.length} registros agrupados para exibir`); // Debug
       
       // Adicionar registros (já estão ordenados por data mais recente primeiro, vamos inverter para PDF)
       const registrosOrdenados = [...registrosAgrupados].reverse();
       
       registrosOrdenados.forEach((registro, index) => {
-        console.log(`Adicionando registro ${index}:`, registro); // Debug
+        //console.log(`Adicionando registro ${index}:`, registro); // Debug
         
         // Verificar se precisa de nova página
         if (currentY > 180) {
@@ -323,7 +323,7 @@ const ViewPoints: React.FC = () => {
     const nomeArquivo = `relatorio-${(usuario.nome || 'usuario').replace(/\s+/g, '-')}-${dayjs().format('DDMMYYYY')}.pdf`;
     doc.save(nomeArquivo);
     
-    console.log('PDF gerado com sucesso:', nomeArquivo); // Debug
+    //console.log('PDF gerado com sucesso:', nomeArquivo); // Debug
   };
 
   // Função para agrupar pontos por data

@@ -255,8 +255,8 @@ const Solicitacoes: React.FC = () => {
       
       // Debug da autenticação
       const { default: keycloakService } = await import('../../services/keycloakService');
-      console.log('=== DEBUG AUTENTICAÇÃO ===');
-      console.log('Status Keycloak:', keycloakService.getDebugInfo());
+      //console.log('=== DEBUG AUTENTICAÇÃO ===');
+      //console.log('Status Keycloak:', keycloakService.getDebugInfo());
       
       const { apiMVCService } = await import('../../services/apiMVC');
       
@@ -363,15 +363,15 @@ const Solicitacoes: React.FC = () => {
 
   const handleAbrirResolucao = async (solicitacao?: any) => {
     const solicitacaoParaUsar = solicitacao || solicitacaoSelecionada;
-    console.log('[Solicitacoes] Abrindo resolução para:', solicitacaoParaUsar);
+    //console.log('[Solicitacoes] Abrindo resolução para:', solicitacaoParaUsar);
     if (!solicitacaoParaUsar) return;
     
     try {
       const { apiMVCService } = await import('../../services/apiMVC');
       // Busca os pontos da data referente
-      console.log('[Solicitacoes] Buscando pontos para usuário:', solicitacaoParaUsar.usuarioId, 'data:', solicitacaoParaUsar.dataReferencia);
+      //console.log('[Solicitacoes] Buscando pontos para usuário:', solicitacaoParaUsar.usuarioId, 'data:', solicitacaoParaUsar.dataReferencia);
       const pontos = await apiMVCService.getPontosPorData(solicitacaoParaUsar.usuarioId, solicitacaoParaUsar.dataReferencia);
-      console.log('[Solicitacoes] Pontos carregados:', pontos);
+      //console.log('[Solicitacoes] Pontos carregados:', pontos);
       
       if (pontos && pontos.length > 0) {
         // Se há pontos, preenche os campos
@@ -382,7 +382,7 @@ const Solicitacoes: React.FC = () => {
           horario: format(new Date(ponto.dataHora), 'HH:mm')
         }));
         
-        console.log('[Solicitacoes] Pontos processados:', pontosOrdenados);
+        //console.log('[Solicitacoes] Pontos processados:', pontosOrdenados);
         
         setPontosReferencia({
           entrada1: pontosOrdenados[0]?.horario || '',
@@ -393,7 +393,7 @@ const Solicitacoes: React.FC = () => {
           saida3: pontosOrdenados[5]?.horario || ''
         });
       } else {
-        console.log('[Solicitacoes] Nenhum ponto encontrado, campos vazios');
+        //console.log('[Solicitacoes] Nenhum ponto encontrado, campos vazios');
         // Se não há pontos, deixa os campos vazios para serem preenchidos
         setPontosReferencia({
           entrada1: '',

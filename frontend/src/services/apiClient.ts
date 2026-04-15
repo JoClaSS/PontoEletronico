@@ -18,14 +18,14 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
   client.interceptors.request.use(
     (config) => {
       // Debug da autenticação
-      console.log(`[${backendType}] Usuário autenticado:`, authService.isAuthenticated());
+      //console.log(`[${backendType}] Usuário autenticado:`, authService.isAuthenticated());
       
       // Adicionar token de autenticação se disponível
       if (authService.isAuthenticated()) {
         const token = authService.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
-          console.log(`[${backendType}] Token JWT enviado:`, token.substring(0, 50) + '...');
+          //console.log(`[${backendType}] Token JWT enviado:`, token.substring(0, 50) + '...');
         } else {
           console.warn(`[${backendType}] Token não disponível mesmo com usuário autenticado!`);
         }
@@ -33,9 +33,9 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
         console.warn(`[${backendType}] Usuário não autenticado - token não será enviado`);
       }
 
-      console.log(`[${backendType}] ${config.method?.toUpperCase()} ${config.url}`);
-      console.log(`[${backendType}] Headers:`, config.headers);
-      console.log(`[${backendType}] Request data:`, config.data);
+      //console.log(`[${backendType}] ${config.method?.toUpperCase()} ${config.url}`);
+      //console.log(`[${backendType}] Headers:`, config.headers);
+      //console.log(`[${backendType}] Request data:`, config.data);
       return config;
     },
     (error) => {
@@ -46,7 +46,7 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
 
   client.interceptors.response.use(
     (response) => {
-      console.log(`[${backendType}] Response:`, response.status);
+      //console.log(`[${backendType}] Response:`, response.status);
       return response;
     },
     (error) => {
