@@ -27,6 +27,7 @@ interface FormData {
   nomeEmpresa: string;
   horarioCheckin: string;
   horarioCheckout: string;
+  intervaloMinimoMinutos: number;
   fotoEmpresa?: string;
   logoEmpresaNome?: string;
   logoEmpresaTipo?: string;
@@ -45,6 +46,7 @@ const Configuracoes: React.FC = () => {
     nomeEmpresa: 'Mundial Ciclo',
     horarioCheckin: '08:00',
     horarioCheckout: '18:00',
+    intervaloMinimoMinutos: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -75,6 +77,7 @@ const Configuracoes: React.FC = () => {
         nomeEmpresa: configuracoes.nomeEmpresa || 'Mundial Ciclo',
         horarioCheckin: configuracoes.horarioCheckin || '08:00',
         horarioCheckout: configuracoes.horarioCheckout || '18:00',
+        intervaloMinimoMinutos: configuracoes.intervaloMinimoMinutos || 0,
         fotoEmpresa: configuracoes.fotoEmpresa,
         logoEmpresaNome: configuracoes.logoEmpresaNome,
         logoEmpresaTipo: configuracoes.logoEmpresaTipo,
@@ -110,6 +113,16 @@ const Configuracoes: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       [field]: event.target.value
+    }));
+  };
+
+  const handleNumberChange = (field: keyof FormData) => (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = parseInt(event.target.value) || 0;
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
     }));
   };
 
@@ -206,6 +219,7 @@ const Configuracoes: React.FC = () => {
         nomeEmpresa: formData.nomeEmpresa.trim(),
         horarioCheckin: formData.horarioCheckin,
         horarioCheckout: formData.horarioCheckout,
+        intervaloMinimoMinutos: formData.intervaloMinimoMinutos,
         // Garantir que campos opcionais sejam omitidos se undefined ou vazios
         ...(formData.fotoEmpresa && { fotoEmpresa: formData.fotoEmpresa }),
         ...(formData.logoEmpresaNome && { logoEmpresaNome: formData.logoEmpresaNome }),
@@ -338,6 +352,18 @@ const Configuracoes: React.FC = () => {
                   }}
                 />
               </Box>
+
+              {/* Intervalo Mínimo */}
+              <TextField
+                fullWidth
+                label="Intervalo Mínimo (minutos)"
+                type="number"
+                value={formData.intervaloMinimoMinutos}
+                onChange={handleNumberChange('intervaloMinimoMinutos')}
+                variant="outlined"
+                inputProps={{ min: 0, max: 60 }}
+                helperText="Intervalo mínimo em minutos entre registros de ponto (0 = sem restrição)"
+              />
 
               {/* Logo da Empresa */}
               <Box>

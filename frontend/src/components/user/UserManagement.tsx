@@ -38,7 +38,8 @@ import {
   Close as CloseIcon,
   Visibility as VisibilityIcon,
   Delete as DeleteIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  Restore as RestoreIcon
 } from '@mui/icons-material';
 import { useApi } from '../../hooks/useApi';
 import type { Usuario, CriarUsuarioRequest, RoleType } from '../../types';
@@ -52,11 +53,12 @@ interface FormData {
 
 const UserManagement: React.FC = () => {
   const { useUsuarios } = useApi();
-  const { data: usuarios, loading, error, loadUsuarios, criarUsuario, desativarUsuario } = useUsuarios();
+  const { data: usuarios, loading, error, loadUsuarios, criarUsuario, desativarUsuario, reativarUsuario } = useUsuarios();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [reactivateModalOpen, setReactivateModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
   const [formData, setFormData] = useState<FormData>({
     nome: '',
@@ -73,10 +75,11 @@ const UserManagement: React.FC = () => {
 
   const [submitLoading, setSubmitLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [reactivateLoading, setReactivateLoading] = useState(false);
 
   // Estados para filtros
   const [filtroNome, setFiltroNome] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState('todos');
+  const [filtroStatus, setFiltroStatus] = useState('ativo');
 
   // Estados para paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -215,6 +218,11 @@ const UserManagement: React.FC = () => {
     setDeleteModalOpen(true);
   };
 
+  const handleReactivateUser = (usuario: Usuario) => {
+    setSelectedUser(usuario);
+    setReactivateModalOpen(true);
+  };
+
   const handleConfirmDelete = async () => {
     if (!selectedUser) return;
 
@@ -236,6 +244,30 @@ const UserManagement: React.FC = () => {
       });
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const handleConfirmReactivate = async () => {
+    if (!selectedUser) return;
+
+    setReactivateLoading(true);
+    try {
+      await reativarUsuario(selectedUser.id);
+      setSnackbar({
+        open: true,
+        message: 'Usuário reativado com sucesso!',
+        severity: 'success'
+      });
+      setReactivateModalOpen(false);
+      setSelectedUser(null);
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Erro ao reativar usuário',
+        severity: 'error'
+      });
+    } finally {
+      setReactivateLoading(false);
     }
   };
 
@@ -276,7 +308,7 @@ const UserManagement: React.FC = () => {
 
   const handleLimparFiltros = () => {
     setFiltroNome('');
-    setFiltroStatus('todos');
+    setFiltroStatus('ativo');
     setPaginaAtual(1); // Volta para primeira página ao limpar filtros
   };
 
@@ -376,7 +408,7 @@ const UserManagement: React.FC = () => {
                         <VisibilityIcon />
                       </IconButton>
                     </Tooltip>
-                    {usuario.ativo !== false && (
+                    {usuario.ativo !== false ? (
                       <Tooltip title="Desativar Usuário">
                         <IconButton 
                           onClick={() => handleDeleteUser(usuario)} 
@@ -385,6 +417,17 @@ const UserManagement: React.FC = () => {
                           sx={{ ml: 1 }}
                         >
                           <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip title="Reativar Usuário">
+                        <IconButton 
+                          onClick={() => handleReactivateUser(usuario)} 
+                          color="success"
+                          size="small"
+                          sx={{ ml: 1 }}
+                        >
+                          <RestoreIcon />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -746,6 +789,56 @@ const UserManagement: React.FC = () => {
             startIcon={deleteLoading ? <CircularProgress size={16} /> : <DeleteIcon />}
           >
             {deleteLoading ? 'Desativando...' : 'Desativar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de confirmação de reativação */}
+      <Dialog 
+        open={reactivateModalOpen} 
+        onClose={() => setReactivateModalOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', color: 'success.main' }}>
+          <RestoreIcon sx={{ mr: 1 }} />
+          Confirmar Reativação
+        </DialogTitle>
+        
+        <DialogContent>
+          <DialogContentText>
+            {selectedUser && (
+              <>
+                Tem certeza que deseja <strong>reativar</strong> o usuário <strong>{selectedUser.nome}</strong>?
+                <br /><br />
+                Esta ação irá:
+                <br />
+                • Permitir que o usuário faça login no sistema novamente
+                <br />
+                • Restaurar o acesso completo às funcionalidades
+                <br />
+                • Manter todos os dados históricos preservados
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setReactivateModalOpen(false)}
+            disabled={reactivateLoading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleConfirmReactivate}
+            disabled={reactivateLoading}
+            startIcon={reactivateLoading ? <CircularProgress size={16} /> : <RestoreIcon />}
+          >
+            {reactivateLoading ? 'Reativando...' : 'Reativar'}
           </Button>
         </DialogActions>
       </Dialog>

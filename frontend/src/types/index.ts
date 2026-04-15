@@ -224,6 +224,7 @@ export interface ConfiguracaoEmpresa {
   logoEmpresaNome?: string; // nome do arquivo original
   logoEmpresaTipo?: string; // tipo MIME
   logoEmpresaTamanho?: number; // tamanho em bytes
+  intervaloMinimoMinutos?: number; // intervalo mínimo entre registros em minutos
   createdAt?: string;
   updatedAt?: string;
 }
@@ -236,4 +237,5 @@ export interface AtualizarConfiguracaoRequest {
   logoEmpresaNome?: string;
   logoEmpresaTipo?: string;
   logoEmpresaTamanho?: number;
+  intervaloMinimoMinutos?: number;
 }

@@ -44,6 +44,7 @@ public class ConfiguracaoEmpresaService {
         defaultConfig.setNomeEmpresa("Mundial Ciclo");
         defaultConfig.setHorarioCheckin(java.time.LocalTime.of(8, 0));
         defaultConfig.setHorarioCheckout(java.time.LocalTime.of(18, 0));
+        defaultConfig.setIntervaloMinimoMinutos(0);
         return defaultConfig;
     }
     
@@ -75,6 +76,7 @@ public class ConfiguracaoEmpresaService {
             configuracao.setNomeEmpresa(request.getNomeEmpresa());
             configuracao.setHorarioCheckin(request.getHorarioCheckin());
             configuracao.setHorarioCheckout(request.getHorarioCheckout());
+            configuracao.setIntervaloMinimoMinutos(request.getIntervaloMinimoMinutos() != null ? request.getIntervaloMinimoMinutos() : 0);
             configuracao.setLogoEmpresaNome(request.getLogoEmpresaNome());
             configuracao.setLogoEmpresaTipo(request.getLogoEmpresaTipo());
             configuracao.setLogoEmpresaTamanho(request.getLogoEmpresaTamanho());

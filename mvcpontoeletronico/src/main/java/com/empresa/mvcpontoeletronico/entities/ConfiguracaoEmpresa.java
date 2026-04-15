@@ -58,6 +58,10 @@ public class ConfiguracaoEmpresa {
     @Column(name = "logo_empresa_tamanho")
     private Integer logoEmpresaTamanho;
     
+    @Builder.Default
+    @Column(name = "intervalo_minimo_minutos", nullable = false)
+    private Integer intervaloMinimoMinutos = 0;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

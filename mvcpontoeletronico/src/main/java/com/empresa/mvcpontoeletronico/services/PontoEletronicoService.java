@@ -33,7 +33,8 @@ public class PontoEletronicoService {
     private final PontoEletronicoRepository pontoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ConfiguracaoEmpresaService configuracaoService;
-    private static final int INTERVALO_MINIMO_MINUTOS = 0; // Desabilitado - apenas validação de ordem cronológica
+    // Removido: private static final int INTERVALO_MINIMO_MINUTOS = 0; 
+    // Agora será obtido dinamicamente das configurações da empresa
     
     /**
      * Registra um novo ponto eletrônico com a nova lógica:
@@ -92,12 +93,13 @@ public class PontoEletronicoService {
             }
             
             // Valida intervalo mínimo se habilitado
-            if (INTERVALO_MINIMO_MINUTOS > 0 && ultimoRegistro != null) {
+            int intervaloMinimoMinutos = configuracaoService.obterConfiguracoes().getIntervaloMinimoMinutos();
+            if (intervaloMinimoMinutos > 0 && ultimoRegistro != null) {
                 long minutosDecorridos = java.time.Duration.between(ultimoRegistro, dataHora).toMinutes();
-                if (minutosDecorridos < INTERVALO_MINIMO_MINUTOS) {
+                if (minutosDecorridos < intervaloMinimoMinutos) {
                     log.warn("Intervalo insuficiente entre registros. Último: {}, Atual: {}, Decorridos: {} min", 
                         ultimoRegistro, dataHora, minutosDecorridos);
-                    throw new IllegalArgumentException("Deve haver um intervalo mínimo de " + INTERVALO_MINIMO_MINUTOS + " minuto(s) entre registros");
+                    throw new IllegalArgumentException("Deve haver um intervalo mínimo de " + intervaloMinimoMinutos + " minuto(s) entre registros");
                 }
             }
             

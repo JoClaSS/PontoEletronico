@@ -28,6 +28,7 @@ public class ConfiguracaoEmpresaResponse {
     private String logoEmpresaNome;
     private String logoEmpresaTipo;
     private Integer logoEmpresaTamanho;
+    private Integer intervaloMinimoMinutos;
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
@@ -47,6 +48,7 @@ public class ConfiguracaoEmpresaResponse {
         response.setLogoEmpresaNome(entity.getLogoEmpresaNome());
         response.setLogoEmpresaTipo(entity.getLogoEmpresaTipo());
         response.setLogoEmpresaTamanho(entity.getLogoEmpresaTamanho());
+        response.setIntervaloMinimoMinutos(entity.getIntervaloMinimoMinutos());
         response.setCreatedAt(entity.getCreatedAt());
         response.setUpdatedAt(entity.getUpdatedAt());
         

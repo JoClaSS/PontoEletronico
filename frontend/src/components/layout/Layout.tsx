@@ -266,6 +266,23 @@ const Layout: React.FC = () => {
       >
         <Outlet />
       </Container>
+
+      {/* Footer do Sistema */}
+      <Box 
+        sx={{ 
+          mt: 4,
+          py: 3,
+          textAlign: 'center',
+          px: { xs: 1, sm: 2, md: 'auto' }
+        }}
+      >
+        <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '8px', sm: '8px', md: '10px' } }}>
+          Sistema de ponto eletrônico v1.0.0
+        </Typography>
+        <Typography variant="body1" sx={{ color: 'white', mt: 1, fontSize: { xs: '8px', sm: '8px', md: '10px' } }}>
+          Mundial Ciclo - 2026
+        </Typography>
+      </Box>
     </Box>
   );
 };

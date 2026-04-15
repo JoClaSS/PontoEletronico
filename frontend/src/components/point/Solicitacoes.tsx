@@ -689,7 +689,7 @@ const Solicitacoes: React.FC = () => {
                 label="Selecione o Usuário"
                 disabled={usuariosHook.loading}
               >
-                {usuarios.map((user) => (
+                {usuarios.filter(user => user.ativo !== false).map((user) => (
                   <MenuItem key={user.id} value={user.id}>
                     {user.nome} ({user.email})
                   </MenuItem>

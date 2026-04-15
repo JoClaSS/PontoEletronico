@@ -1,6 +1,8 @@
 package com.empresa.mvcpontoeletronico.dtos;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -36,4 +38,8 @@ public class AtualizarConfiguracaoRequest {
     private String logoEmpresaTipo;
     
     private Integer logoEmpresaTamanho;
+    
+    @Min(value = 0, message = "Intervalo mínimo deve ser maior ou igual a 0")
+    @Max(value = 60, message = "Intervalo mínimo deve ser menor ou igual a 60")
+    private Integer intervaloMinimoMinutos;
 }
