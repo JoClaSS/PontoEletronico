@@ -7,6 +7,10 @@ export class ApiService {
   async getUsuarios(): Promise<Usuario[]> {
     return apiMVCService.getUsuarios();
   }
+  
+  async getFuncionarios(): Promise<Usuario[]> {
+    return apiMVCService.getFuncionarios();
+  }
 
   async getUsuarioById(id: string): Promise<Usuario> {
     return apiMVCService.getUsuarioById(id);

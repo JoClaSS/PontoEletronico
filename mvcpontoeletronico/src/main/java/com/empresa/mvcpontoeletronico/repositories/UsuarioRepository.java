@@ -1,6 +1,7 @@
 package com.empresa.mvcpontoeletronico.repositories;
 
 import com.empresa.mvcpontoeletronico.entities.Usuario;
+import com.empresa.mvcpontoeletronico.entities.RoleType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -47,4 +48,10 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
      * Lista usuários ordenados por nome
      */
     List<Usuario> findAllByOrderByNomeAsc();
+    
+    /**
+     * Lista apenas funcionários ativos ordenados por nome
+     */
+    @Query("SELECT u FROM Usuario u WHERE u.role = :funcionarioRole AND u.ativo = true ORDER BY u.nome ASC")
+    List<Usuario> findFuncionariosAtivos(@Param("funcionarioRole") RoleType funcionarioRole);
 }

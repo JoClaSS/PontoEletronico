@@ -92,7 +92,12 @@ const ViewPoints: React.FC = () => {
   // Carrega usuários na inicialização
   useEffect(() => {
     if (usuarios.length === 0) {
-      usuariosHook.loadUsuarios();
+      // Se for admin, carrega apenas funcionários para seleção
+      if (isAdmin()) {
+        usuariosHook.loadFuncionarios();
+      } else {
+        usuariosHook.loadUsuarios();
+      }
     }
     
     // Se for funcionário, encontra seu próprio usuário e seleciona automaticamente

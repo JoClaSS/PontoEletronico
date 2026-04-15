@@ -40,6 +40,16 @@ public class UsuarioController {
     }
     
     /**
+     * Lista apenas funcionários ativos para seleção
+     */
+    @GetMapping("/funcionarios")
+    public ResponseEntity<List<UsuarioResponse>> listarFuncionarios() {
+        log.debug("GET /api/usuarios/funcionarios - Listando apenas funcionários ativos");
+        List<UsuarioResponse> funcionarios = usuarioService.listarFuncionariosAtivos();
+        return ResponseEntity.ok(funcionarios);
+    }
+    
+    /**
      * Retorna as roles disponíveis
      */
     @GetMapping("/roles")

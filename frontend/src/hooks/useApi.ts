@@ -32,6 +32,25 @@ export const useApi = () => {
         setLoading(false);
       }
     };
+    
+    const loadFuncionarios = async () => {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      setLoading(true);
+      
+      try {
+        const funcionarios = await apiService.getFuncionarios();
+        setState({ data: funcionarios, loading: false, error: null });
+      } catch (error: any) {
+        const errorMessage = error.userMessage || error.message || 'Erro ao carregar funcionários';
+        setState({ 
+          data: null, 
+          loading: false, 
+          error: errorMessage
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
     const criarUsuario = async (usuario: CriarUsuarioRequest): Promise<Usuario | null> => {
       setState(prev => ({ ...prev, loading: true, error: null }));
@@ -107,7 +126,7 @@ export const useApi = () => {
       }
     };
 
-    return { ...state, loadUsuarios, criarUsuario, desativarUsuario, reativarUsuario };
+    return { ...state, loadUsuarios, loadFuncionarios, criarUsuario, desativarUsuario, reativarUsuario };
   };
 
   // Hook para operações de ponto

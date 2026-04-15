@@ -176,6 +176,17 @@ public class UsuarioService {
     }
     
     /**
+     * Lista apenas funcionários ativos para seleção
+     */
+    public List<UsuarioResponse> listarFuncionariosAtivos() {
+        log.debug("Listando apenas funcionários ativos");
+        return usuarioRepository.findFuncionariosAtivos(RoleType.FUNCIONARIO)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+    
+    /**
      * Salva um usuário
      */
     @Transactional

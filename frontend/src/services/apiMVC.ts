@@ -34,6 +34,12 @@ export const apiMVCService = {
     return response.data;
   },
 
+  // Lista apenas funcionários ativos para seleção
+  async getFuncionarios(): Promise<Usuario[]> {
+    const response = await apiMVC.get<Usuario[]>('/api/usuarios/funcionarios');
+    return response.data;
+  },
+
   async getUsuarioById(id: string): Promise<Usuario> {
     const response = await apiMVC.get<Usuario>(`/api/usuarios/${id}`);
     return response.data;
