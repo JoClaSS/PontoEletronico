@@ -175,7 +175,8 @@ const UserManagement: React.FC = () => {
         nome: formData.nome.trim(),
         email: formData.email.trim(),
         cpf: formData.cpf.replace(/\D/g, ''),
-        role: formData.role
+        role: formData.role,
+        senha: ''
       };
 
       await criarUsuario(userData);
