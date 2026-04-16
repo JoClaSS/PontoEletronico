@@ -27,10 +27,10 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
           config.headers.Authorization = `Bearer ${token}`;
           //console.log(`[${backendType}] Token JWT enviado:`, token.substring(0, 50) + '...');
         } else {
-          console.warn(`[${backendType}] Token não disponível mesmo com usuário autenticado!`);
+          console.warn(`Token não disponível mesmo com usuário autenticado!`);
         }
       } else {
-        console.warn(`[${backendType}] Usuário não autenticado - token não será enviado`);
+        console.warn(`Usuário não autenticado - token não será enviado`);
       }
 
       //console.log(`[${backendType}] ${config.method?.toUpperCase()} ${config.url}`);
@@ -39,7 +39,7 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
       return config;
     },
     (error) => {
-      console.error(`[${backendType}] Request error:`, error);
+      //console.error(`[${backendType}] Request error:`, error);
       return Promise.reject(error);
     }
   );
@@ -50,19 +50,19 @@ export const createApiClient = (backendType: keyof typeof BACKEND_CONFIGS) => {
       return response;
     },
     (error) => {
-      console.error(`[${backendType}] Response error:`, error.response?.status, error.message);
-      console.error(`[${backendType}] Response data:`, error.response?.data);
-      console.error(`[${backendType}] URL:`, error.config?.url);
+      //console.error(`[${backendType}] Response error:`, error.response?.status, error.message);
+      //console.error(`[${backendType}] Response data:`, error.response?.data);
+      //console.error(`[${backendType}] URL:`, error.config?.url);
       
       // Verifica se é um erro de autenticação
       if (error.response?.status === 401) {
-        console.error(`[${backendType}] Token inválido ou expirado (401)`);
+        console.error(`Token inválido ou expirado (401)`);
         // O authService já faz logout automático em caso de 401
       }
       
       // Verifica se é um erro de conexão
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
-        console.error(`[${backendType}] CONEXÃO RECUSADA! Backend não está rodando em ${config.baseURL}`);
+        console.error(`CONEXÃO RECUSADA! Backend não está rodando em ${config.baseURL}`);
       }
       
       // Extrai a mensagem de erro do backend, se disponível
