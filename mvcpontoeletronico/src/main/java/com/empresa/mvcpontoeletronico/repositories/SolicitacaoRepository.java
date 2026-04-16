@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -48,7 +49,7 @@ public interface SolicitacaoRepository extends JpaRepository<Solicitacao, UUID> 
     /**
      * Busca a solicitação mais recente por status (baseado na data de referência)
      */
-    List<Solicitacao> findTop1ByStatusOrderByDataReferenciaDesc(StatusSolicitacao status);
+    Optional<Solicitacao> findTop1ByStatusOrderByDataReferenciaDesc(StatusSolicitacao status);
     
     /**
      * Busca todas as solicitações ordenadas por data de referência

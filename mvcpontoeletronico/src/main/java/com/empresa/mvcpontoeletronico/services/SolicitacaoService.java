@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -221,8 +222,8 @@ public class SolicitacaoService {
      */
     public SolicitacaoResponse buscarSolicitacaoMaisRecenteAberta() {
         log.debug("Buscando solicitação mais recente em aberto");
-        List<Solicitacao> solicitacoes = solicitacaoRepository.findTop1ByStatusOrderByDataReferenciaDesc(StatusSolicitacao.ABERTO);
-        return solicitacoes.isEmpty() ? null : mapToResponse(solicitacoes.get(0));
+        Optional<Solicitacao> solicitacao = solicitacaoRepository.findTop1ByStatusOrderByDataReferenciaDesc(StatusSolicitacao.ABERTO);
+        return solicitacao.map(this::mapToResponse).orElse(null);
     }
     
     /**
