@@ -21,12 +21,11 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/apiService';
-import type { ConfiguracaoEmpresa } from '../../types';
 
 const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isVisitante } = useAuth();
   const [logoEmpresa, setLogoEmpresa] = useState<string | null>(null);
   const [nomeEmpresa, setNomeEmpresa] = useState<string>('Mundial Ciclo');
 
@@ -111,21 +110,23 @@ const Layout: React.FC = () => {
 
           {/* Navegação */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Botão Home */}
-            <Button
-              color="inherit"
-              startIcon={<HomeIcon />}
-              onClick={() => handleNavigation('/')}
-              variant={isCurrentPath('/') ? 'outlined' : 'text'}
-              sx={{
-                backgroundColor: isCurrentPath('/') ? 'rgba(255,255,255,0.1)' : 'transparent',
-                fontSize: { xs: '12px', sm: '14px', md: '16px' },
-                minWidth: { xs: 'auto', sm: '64px' },
-                px: { xs: 1, sm: 2 }
-              }}
-            >
-              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Home</Box>
-            </Button>
+            {/* Botão Home - não exibir para visitantes */}
+            {!isVisitante() && (
+              <Button
+                color="inherit"
+                startIcon={<HomeIcon />}
+                onClick={() => handleNavigation('/')}
+                variant={isCurrentPath('/') ? 'outlined' : 'text'}
+                sx={{
+                  backgroundColor: isCurrentPath('/') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  fontSize: { xs: '12px', sm: '14px', md: '16px' },
+                  minWidth: { xs: 'auto', sm: '64px' },
+                  px: { xs: 1, sm: 2 }
+                }}
+              >
+                <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Home</Box>
+              </Button>
+            )}
 
             {/* Botão Visualizar Frequência */}
             <Button
@@ -161,21 +162,23 @@ const Layout: React.FC = () => {
               </Button>
             )}
 
-            {/* Botão Solicitações */}
-            <Button
-              color="inherit"
-              startIcon={<AssignmentIcon />}
-              onClick={() => handleNavigation('/solicitacoes')}
-              variant={isCurrentPath('/solicitacoes') ? 'outlined' : 'text'}
-              sx={{
-                backgroundColor: isCurrentPath('/solicitacoes') ? 'rgba(255,255,255,0.1)' : 'transparent',
-                fontSize: { xs: '12px', sm: '14px', md: '16px' },
-                minWidth: { xs: 'auto', sm: '64px' },
-                px: { xs: 1, sm: 2 }
-              }}
-            >
-              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Solicitações</Box>
-            </Button>
+            {/* Botão Solicitações - não exibir para visitantes */}
+            {!isVisitante() && (
+              <Button
+                color="inherit"
+                startIcon={<AssignmentIcon />}
+                onClick={() => handleNavigation('/solicitacoes')}
+                variant={isCurrentPath('/solicitacoes') ? 'outlined' : 'text'}
+                sx={{
+                  backgroundColor: isCurrentPath('/solicitacoes') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  fontSize: { xs: '12px', sm: '14px', md: '16px' },
+                  minWidth: { xs: 'auto', sm: '64px' },
+                  px: { xs: 1, sm: 2 }
+                }}
+              >
+                <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Solicitações</Box>
+              </Button>
+            )}
 
             {/* Botão Configurações - só para ADMIN e MASTER */}
             {isAdmin() && (
@@ -219,6 +222,21 @@ const Layout: React.FC = () => {
                       backgroundColor: 'rgba(255, 193, 7, 0.2)',
                       color: '#ffc107',
                       border: '1px solid rgba(255, 193, 7, 0.3)',
+                      display: { xs: 'none', sm: 'flex' }
+                    }}
+                  />
+                )}
+
+                {/* Badge de Visitante */}
+                {isVisitante() && (
+                  <Chip
+                    icon={<ScheduleIcon />}
+                    label="Visitante"
+                    size="small"
+                    sx={{
+                      backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                      color: '#4caf50',
+                      border: '1px solid rgba(76, 175, 80, 0.3)',
                       display: { xs: 'none', sm: 'flex' }
                     }}
                   />

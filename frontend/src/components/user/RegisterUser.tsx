@@ -60,7 +60,7 @@ const RegisterUser: React.FC = () => {
       } catch (error) {
         console.error('Erro ao carregar roles:', error);
         // Fallback para roles hardcoded
-        setRoles(['FUNCIONARIO', 'ADMIN']);
+        setRoles(['FUNCIONARIO', 'ADMIN', 'VISITANTE']);
       }
     };
     
@@ -288,6 +288,7 @@ const RegisterUser: React.FC = () => {
                     >
                       <MenuItem value="FUNCIONARIO">Funcionário</MenuItem>
                       <MenuItem value="ADMIN">Administrador</MenuItem>
+                      <MenuItem value="VISITANTE">Visitante</MenuItem>
                     </Select>
                   </FormControl>
                 </Box>

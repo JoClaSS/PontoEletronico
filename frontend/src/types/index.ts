@@ -15,7 +15,8 @@ export type TipoPonto = typeof TipoPonto[keyof typeof TipoPonto];
 // Roles do sistema
 export const RoleType = {
   FUNCIONARIO: 'FUNCIONARIO',
-  ADMIN: 'ADMIN'
+  ADMIN: 'ADMIN',
+  VISITANTE: 'VISITANTE'
 } as const;
 
 export type RoleType = typeof RoleType[keyof typeof RoleType];

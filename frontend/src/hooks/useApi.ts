@@ -93,10 +93,7 @@ export const useApi = () => {
           errorMessage = error.message;
         }
         
-        // Se contém "Keycloak", dar uma mensagem mais amigável
-        if (errorMessage.includes('Keycloak')) {
-          errorMessage = 'Usuário foi desativado localmente, mas houve problema com o sistema de autenticação. Por favor, verifique com o administrador.';
-        }
+
         
         setState(prev => ({ 
           ...prev, 

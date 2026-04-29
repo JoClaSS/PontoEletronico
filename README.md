@@ -31,7 +31,7 @@ Uma aplicação para gerenciar o ponto eletrônico
 - ✅ Visualização de pontos
 - ✅ Gerenciamento de usuários
 - ✅ Sistema de solicitações
-- ✅ Autenticação via Keycloak
+- ✅ Autenticação customizada
 
 ## 🔧 Como usar
 

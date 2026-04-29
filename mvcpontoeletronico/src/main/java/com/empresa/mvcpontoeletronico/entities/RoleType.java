@@ -2,7 +2,8 @@ package com.empresa.mvcpontoeletronico.entities;
 
 public enum RoleType {
     FUNCIONARIO("FUNCIONARIO"),
-    ADMIN("ADMIN");
+    ADMIN("ADMIN"),
+    VISITANTE("VISITANTE");
 
     private final String value;
 

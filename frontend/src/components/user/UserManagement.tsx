@@ -386,7 +386,7 @@ const UserManagement: React.FC = () => {
                 <TableRow key={usuario.id} hover>
                   <TableCell>{usuario.nome}</TableCell>
                   <TableCell>
-                    {usuario.role === 'ADMIN' ? 'Administrador' : usuario.role === 'FUNCIONARIO' ? 'Funcionário' : usuario.role || '-'}
+                    {usuario.role === 'ADMIN' ? 'Administrador' : usuario.role === 'FUNCIONARIO' ? 'Funcionário' : usuario.role === 'VISITANTE' ? 'Visitante' : usuario.role || '-'}
                   </TableCell>
                   <TableCell>
                     <Chip 
@@ -624,6 +624,7 @@ const UserManagement: React.FC = () => {
                     >
                       <MenuItem value="FUNCIONARIO">Funcionário</MenuItem>
                       <MenuItem value="ADMIN">Administrador</MenuItem>
+                      <MenuItem value="VISITANTE">Visitante</MenuItem>
                     </Select>
                   </FormControl>
                 </Box>
@@ -702,7 +703,7 @@ const UserManagement: React.FC = () => {
               <TextField
                 fullWidth
                 label="Role"
-                value={selectedUser.role === 'ADMIN' ? 'Administrador' : selectedUser.role === 'FUNCIONARIO' ? 'Funcionário' : selectedUser.role || 'Não informada'}
+                value={selectedUser.role === 'ADMIN' ? 'Administrador' : selectedUser.role === 'FUNCIONARIO' ? 'Funcionário' : selectedUser.role === 'VISITANTE' ? 'Visitante' : selectedUser.role || 'Não informada'}
                 variant="outlined"
                 InputProps={{ readOnly: true }}
               />

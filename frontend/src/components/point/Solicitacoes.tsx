@@ -253,11 +253,6 @@ const Solicitacoes: React.FC = () => {
       // Formato da data para envio
       const dataFormatada = format(dataReferencia, 'yyyy-MM-dd');
       
-      // Debug da autenticação
-      const { default: keycloakService } = await import('../../services/keycloakService');
-      //console.log('=== DEBUG AUTENTICAÇÃO ===');
-      //console.log('Status Keycloak:', keycloakService.getDebugInfo());
-      
       const { apiMVCService } = await import('../../services/apiMVC');
       
       // Se o motivo requer anexo ou se um anexo foi fornecido, usa a API de multipart

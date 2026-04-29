@@ -11,6 +11,7 @@ interface AuthContextType {
   hasRole: (role: string) => boolean;
   isAdmin: () => boolean;
   isFuncionario: () => boolean;
+  isVisitante: () => boolean;
   getToken: () => string | null;
   loading: boolean;
   primeiroLogin: boolean;
@@ -107,6 +108,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return authService.isFuncionario();
   };
 
+  const isVisitante = (): boolean => {
+    return authService.isVisitante();
+  };
+
   const getToken = (): string | null => {
     return authService.getToken();
   };
@@ -119,6 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     hasRole,
     isAdmin,
     isFuncionario,
+    isVisitante,
     getToken,
     loading,
     primeiroLogin,

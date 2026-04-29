@@ -73,7 +73,7 @@ function TabPanel(props: TabPanelProps) {
 const ViewPoints: React.FC = () => {
   const { selectedUser, setSelectedUser, usuarios, setUsuarios, pontosUpdateTrigger } = useAppContext();
   const { useUsuarios, usePontos, useRelatorios } = useApi();
-  const { user, isAdmin, isFuncionario } = useAuth();
+  const { user, isAdmin, isFuncionario, isVisitante } = useAuth();
   const usuariosHook = useUsuarios();
   const pontosHook = usePontos(selectedUser?.id);
   const relatoriosHook = useRelatorios();
@@ -92,8 +92,8 @@ const ViewPoints: React.FC = () => {
   // Carrega usuários na inicialização
   useEffect(() => {
     if (usuarios.length === 0) {
-      // Se for admin, carrega apenas funcionários para seleção
-      if (isAdmin()) {
+      // Se for admin ou visitante, carrega apenas funcionários para seleção
+      if (isAdmin() || isVisitante()) {
         usuariosHook.loadFuncionarios();
       } else {
         usuariosHook.loadUsuarios();
@@ -107,7 +107,7 @@ const ViewPoints: React.FC = () => {
         setSelectedUser(usuarioLogado);
       }
     }
-  }, [usuarios.length, user, isAdmin, isFuncionario]);
+  }, [usuarios.length, user, isAdmin, isFuncionario, isVisitante]);
 
   // Atualiza lista de usuários no contexto quando carregados
   useEffect(() => {
@@ -468,7 +468,7 @@ const ViewPoints: React.FC = () => {
       {/* Seleção de Usuário */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          {isAdmin() ? (
+          {isAdmin() || isVisitante() ? (
             <FormControl fullWidth>
               <InputLabel id="user-select-label">
                 <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />

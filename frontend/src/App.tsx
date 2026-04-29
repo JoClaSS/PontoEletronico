@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { ptBR } from '@mui/material/locale';
@@ -31,7 +31,7 @@ const theme = createTheme(
 
 // Componente interno que usa o contexto de autenticação
 const AppContent: React.FC = () => {
-  const { isAuthenticated, primeiroLogin, setPrimeiroLogin } = useAuth();
+  const { isAuthenticated, primeiroLogin, setPrimeiroLogin, isVisitante } = useAuth();
 
   // Se não estiver autenticado, mostra a tela de login
   if (!isAuthenticated) {
@@ -57,12 +57,14 @@ const AppContent: React.FC = () => {
       <Router>
         <Routes>
           <Route path="/" element={<Layout />}>
-            <Route index element={<RegisterPoint />} />
+            {/* Rota principal - visitantes são redirecionados para frequência */}
+            <Route index element={isVisitante() ? <Navigate to="/frequencia" replace /> : <RegisterPoint />} />
             <Route path="frequencia" element={<ViewPoints />} />
-            <Route path="usuarios" element={<UserManagement />} />
-            <Route path="usuarios/cadastrar" element={<RegisterUser />} />
-            <Route path="solicitacoes" element={<Solicitacoes />} />
-            <Route path="configuracoes" element={<Configuracoes />} />
+            {/* Rotas restritas - não acessíveis para visitantes */}
+            <Route path="usuarios" element={isVisitante() ? <Navigate to="/frequencia" replace /> : <UserManagement />} />
+            <Route path="usuarios/cadastrar" element={isVisitante() ? <Navigate to="/frequencia" replace /> : <RegisterUser />} />
+            <Route path="solicitacoes" element={isVisitante() ? <Navigate to="/frequencia" replace /> : <Solicitacoes />} />
+            <Route path="configuracoes" element={isVisitante() ? <Navigate to="/frequencia" replace /> : <Configuracoes />} />
           </Route>
         </Routes>
       </Router>

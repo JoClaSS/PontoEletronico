@@ -101,6 +101,10 @@ class AuthService {
     return this.hasRole('FUNCIONARIO');
   }
 
+  isVisitante(): boolean {
+    return this.hasRole('VISITANTE');
+  }
+
   // Verificar se o token ainda é válido
   async checkTokenValidity(): Promise<boolean> {
     if (!this.token) return false;
