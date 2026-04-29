@@ -3,6 +3,7 @@ package com.empresa.mvcpontoeletronico.services;
 import com.empresa.mvcpontoeletronico.dtos.PontoEletronicoResponse;
 import com.empresa.mvcpontoeletronico.dtos.RegistrarPontoRequest;
 import com.empresa.mvcpontoeletronico.dtos.RelatorioHorasResponse;
+import com.empresa.mvcpontoeletronico.dtos.UsuarioResponse;
 import com.empresa.mvcpontoeletronico.entities.PontoEletronico;
 import com.empresa.mvcpontoeletronico.entities.Usuario;
 import com.empresa.mvcpontoeletronico.repositories.PontoEletronicoRepository;
@@ -490,5 +491,48 @@ public class PontoEletronicoService {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Formato de horário inválido: " + horario);
         }
+    }
+
+    /**
+     * Lista usuários que possuem pelo menos um ponto registrado na data especificada
+     * Usado para a lista de presença do dia
+     */
+    public List<UsuarioResponse> listarUsuariosComPontoNaData(LocalDate data) {
+        log.debug("Buscando usuários com ponto registrado na data: {}", data);
+        
+        // Buscar todos os pontos da data usando o campo 'data' correto
+        List<PontoEletronico> pontos = pontoRepository.findByDataOrderByDataAsc(data);
+        
+        // Extrair usuários únicos que registraram pontos
+        Set<UUID> usuariosComPonto = pontos.stream()
+                .map(ponto -> ponto.getUsuario().getId())
+                .collect(Collectors.toSet());
+        
+        // Buscar informações completas dos usuários
+        List<Usuario> usuarios = usuarioRepository.findAllById(usuariosComPonto);
+        
+        // Converter para UsuarioResponse e ordenar por nome
+        return usuarios.stream()
+                .filter(usuario -> usuario.getAtivo()) // Só usuários ativos
+                .sorted(Comparator.comparing(Usuario::getNome))
+                .map(this::toUsuarioResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Converte Usuario para UsuarioResponse
+     */
+    private UsuarioResponse toUsuarioResponse(Usuario usuario) {
+        return UsuarioResponse.builder()
+                .id(usuario.getId())
+                .nome(usuario.getNome())
+                .email(usuario.getEmail())
+                .cpf(usuario.getCpf())
+                .role(usuario.getRole())
+                .ativo(usuario.getAtivo())
+                .primeiroLogin(usuario.getPrimeiroLogin())
+                .createdAt(usuario.getCreatedAt())
+                .updatedAt(usuario.getUpdatedAt())
+                .build();
     }
 }

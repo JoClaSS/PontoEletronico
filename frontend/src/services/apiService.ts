@@ -63,6 +63,10 @@ export class ApiService {
     return apiMVCService.getUsuarios();
   }
 
+  async getListaPresencaDodia(data?: string): Promise<Usuario[]> {
+    return apiMVCService.getListaPresencaDodia(data);
+  }
+
   // Configurações da Empresa
   async getConfiguracoes(): Promise<ConfiguracaoEmpresa> {
     return apiMVCService.getConfiguracoes();

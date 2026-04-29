@@ -86,4 +86,11 @@ public interface PontoEletronicoRepository extends JpaRepository<PontoEletronico
            "AND (p.entrada1 IS NOT NULL AND (p.saida1 IS NULL OR p.entrada2 IS NULL OR p.saida2 IS NULL OR p.entrada3 IS NULL OR p.saida3 IS NULL)) " +
            "ORDER BY p.createdAt DESC")
     List<PontoEletronico> findRegistrosIncompletos(@Param("usuarioId") UUID usuarioId);
+
+    /**
+     * Busca todos os pontos registrados em uma data específica
+     * Usado para lista de presença
+     */
+    @Query("SELECT p FROM PontoEletronico p WHERE p.data = :data ORDER BY p.data ASC")
+    List<PontoEletronico> findByDataOrderByDataAsc(@Param("data") LocalDate data);
 }

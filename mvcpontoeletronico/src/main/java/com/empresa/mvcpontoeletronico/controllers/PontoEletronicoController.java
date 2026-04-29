@@ -3,6 +3,7 @@ package com.empresa.mvcpontoeletronico.controllers;
 import com.empresa.mvcpontoeletronico.dtos.PontoEletronicoResponse;
 import com.empresa.mvcpontoeletronico.dtos.RegistrarPontoRequest;
 import com.empresa.mvcpontoeletronico.dtos.RelatorioHorasResponse;
+import com.empresa.mvcpontoeletronico.dtos.UsuarioResponse;
 import com.empresa.mvcpontoeletronico.services.PontoEletronicoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -138,5 +139,21 @@ public class PontoEletronicoController {
             log.warn("Erro ao remover ponto: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * Lista funcionários que registraram ponto hoje (lista de presença)
+     * GET /api/pontos/presenca?data=2024-03-15 (data opcional, padrão: hoje)
+     */
+    @GetMapping("/presenca")
+    public ResponseEntity<List<UsuarioResponse>> listarPresencaDodia(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+        
+        // Se data não for informada, usa a data atual
+        LocalDate dataConsulta = data != null ? data : LocalDate.now();
+        log.debug("GET /api/pontos/presenca - Consultando presença para data: {}", dataConsulta);
+        
+        List<UsuarioResponse> usuariosPresentes = pontoService.listarUsuariosComPontoNaData(dataConsulta);
+        return ResponseEntity.ok(usuariosPresentes);
     }
 }

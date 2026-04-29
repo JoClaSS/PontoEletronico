@@ -27,7 +27,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { TipoPonto } from '../../types';
-import type { TipoPonto as TipoPontoType } from '../../types';
+import type { TipoPonto as TipoPontoType, Usuario } from '../../types';
 import { apiService } from '../../services/apiService';
 
 const RegisterPoint: React.FC = () => {
@@ -40,6 +40,8 @@ const RegisterPoint: React.FC = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [currentTime, setCurrentTime] = useState(new Date());
   const [horarioPermitido, setHorarioPermitido] = useState({ checkin: '08:00', checkout: '18:00' });
+  const [listaPresenca, setListaPresenca] = useState<Usuario[]>([]);
+  const [loadingPresenca, setLoadingPresenca] = useState(false);
 
   // Carrega configurações de horário permitido
   useEffect(() => {
@@ -112,6 +114,35 @@ const RegisterPoint: React.FC = () => {
     }
   }, [pontosUpdateTrigger, selectedUser?.id]);
 
+  // Carrega lista de presença para admins
+  useEffect(() => {
+    if (isAdmin()) {
+      carregarListaPresenca();
+      
+      // Atualizar automaticamente a cada 60 segundos
+      const interval = setInterval(() => {
+        carregarListaPresenca();
+      }, 60000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isAdmin]);
+
+  // Função para carregar lista de presença
+  const carregarListaPresenca = async () => {
+    try {
+      setLoadingPresenca(true);
+      const hoje = format(new Date(), 'yyyy-MM-dd');
+      const usuariosPresentes = await apiService.getListaPresencaDodia(hoje);
+      setListaPresenca(usuariosPresentes);
+    } catch (error) {
+      console.error('Erro ao carregar lista de presença:', error);
+      setListaPresenca([]);
+    } finally {
+      setLoadingPresenca(false);
+    }
+  };
+
   const handleUserChange = (event: SelectChangeEvent<string>) => {
     const userId = event.target.value;
     const user = usuarios.find(u => u.id === userId);
@@ -162,6 +193,11 @@ const RegisterPoint: React.FC = () => {
         
         // Notifica outros componentes que pontos foram atualizados
         notifyPontosUpdate();
+
+        // Recarrega lista de presença se for admin
+        if (isAdmin()) {
+          carregarListaPresenca();
+        }
       }
     } catch (error: any) {
       const errorMessage = error.userMessage || error.message || 'Erro ao registrar ponto';
@@ -347,6 +383,43 @@ const RegisterPoint: React.FC = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Card da Lista de Presença - só para ADMIN */}
+        {isAdmin() && (
+          <Card sx={{ width: 350 }}>
+            <CardContent>
+              <Typography variant="h6" component="h2" gutterBottom sx={{ color: 'black' }}>
+                Lista de Presença
+              </Typography>
+
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Funcionários presentes hoje ({format(currentTime, 'dd/MM/yyyy')})
+              </Typography>
+
+              {loadingPresenca ? (
+                <Typography>Carregando...</Typography>
+              ) : listaPresenca.length > 0 ? (
+                <List dense>
+                  {listaPresenca.map((funcionario, index) => (
+                    <React.Fragment key={`presenca-${funcionario.id}-${index}`}>
+                      <ListItem>
+                        <ListItemText
+                          primary={funcionario.nome}
+                          secondary={funcionario.role || 'N/A'}
+                        />
+                      </ListItem>
+                      {index < listaPresenca.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))}
+                </List>
+              ) : (
+                <Typography color="text.secondary">
+                  Nenhum funcionário registrou ponto hoje
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </Box>
 
       {/* Snackbar para mensagens */}

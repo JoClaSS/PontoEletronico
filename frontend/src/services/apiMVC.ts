@@ -135,6 +135,16 @@ export const apiMVCService = {
     return response.data;
   },
 
+  // Lista de presença - funcionários que registraram ponto na data
+  async getListaPresencaDodia(data?: string): Promise<Usuario[]> {
+    let url = '/api/pontos/presenca';
+    if (data) {
+      url += `?data=${data}`;
+    }
+    const response = await apiMVC.get<Usuario[]>(url);
+    return response.data;
+  },
+
   // Jornadas (se necessário)
   async getJornadas(): Promise<any[]> {
     const response = await apiMVC.get<any[]>('/api/jornadas');
