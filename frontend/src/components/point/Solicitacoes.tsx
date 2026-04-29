@@ -716,18 +716,20 @@ const Solicitacoes: React.FC = () => {
       {selectedUser && (
         <Card>
           <CardContent>
-            {/* Botão Abrir Solicitação */}
+            {/* Botão Abrir Solicitação - oculto para ADMIN */}
             <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6">
                 Solicitações de {selectedUser.nome}
               </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleAbrirDialog}
-              >
-                Abrir Solicitação
-              </Button>
+              {!isAdmin() && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAbrirDialog}
+                >
+                  Abrir Solicitação
+                </Button>
+              )}
             </Box>
 
             {/* Filtros */}

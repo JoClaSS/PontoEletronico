@@ -317,17 +317,19 @@ const RegisterPoint: React.FC = () => {
               </Box>
             )}
 
-            {/* Botão de Registro */}
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              onClick={handleRegistrarPonto}
-              disabled={!selectedUser || pontosHook.loading}
-              sx={{ py: 2 }}
-            >
-              {pontosHook.loading ? 'Registrando...' : 'Registrar Ponto'}
-            </Button>
+            {/* Botão de Registro - oculto para ADMIN */}
+            {!isAdmin() && (
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                onClick={handleRegistrarPonto}
+                disabled={!selectedUser || pontosHook.loading}
+                sx={{ py: 2 }}
+              >
+                {pontosHook.loading ? 'Registrando...' : 'Registrar Ponto'}
+              </Button>
+            )}
           </CardContent>
         </Card>
 

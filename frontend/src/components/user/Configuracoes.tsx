@@ -11,7 +11,12 @@ import {
   Avatar,
   IconButton,
   Stack,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -57,6 +62,7 @@ const Configuracoes: React.FC = () => {
     message: '',
     severity: 'success' as 'success' | 'error'
   });
+  const [dialogConfirmacao, setDialogConfirmacao] = useState(false);
 
   // Carrega configurações automaticamente quando o componente for montado
   useEffect(() => {
@@ -213,6 +219,12 @@ const Configuracoes: React.FC = () => {
       return;
     }
 
+    // Abrir dialog de confirmação
+    setDialogConfirmacao(true);
+  };
+
+  const confirmarSalvarConfiguracoes = async () => {
+    setDialogConfirmacao(false);
     setLoading(true);
     try {
       const request: AtualizarConfiguracaoRequest = {
@@ -441,6 +453,32 @@ const Configuracoes: React.FC = () => {
       </Card>
 
       {/* Snackbar para mensagens */}
+      {/* Dialog de Confirmação */}
+      <Dialog
+        open={dialogConfirmacao}
+        onClose={() => setDialogConfirmacao(false)}
+        aria-labelledby="dialog-confirmacao-titulo"
+        aria-describedby="dialog-confirmacao-descricao"
+      >
+        <DialogTitle id="dialog-confirmacao-titulo" color="black">
+          Confirmar Alterações
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="dialog-confirmacao-descricao">
+            Tem certeza que deseja salvar as configurações da empresa? 
+            As alterações serão aplicadas imediatamente e afetarão todos os usuários do sistema.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogConfirmacao(false)} color="primary">
+            Cancelar
+          </Button>
+          <Button onClick={confirmarSalvarConfiguracoes} color="primary" variant="contained" autoFocus>
+            Confirmar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
