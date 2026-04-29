@@ -75,6 +75,11 @@ export class ApiService {
   async salvarConfiguracoes(configuracoes: AtualizarConfiguracaoRequest): Promise<ConfiguracaoEmpresa> {
     return apiMVCService.salvarConfiguracoes(configuracoes);
   }
+
+  // Informações do Sistema
+  async getSystemInfo(): Promise<{ version: string; name: string; footerCompany: string }> {
+    return apiMVCService.getSystemInfo();
+  }
 }
 
 // Instância singleton

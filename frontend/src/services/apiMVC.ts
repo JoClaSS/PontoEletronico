@@ -224,5 +224,11 @@ export const apiMVCService = {
   async salvarConfiguracoes(configuracoes: AtualizarConfiguracaoRequest): Promise<ConfiguracaoEmpresa> {
     const response = await apiMVC.post<ConfiguracaoEmpresa>('/api/configuracoes', configuracoes);
     return response.data;
+  },
+
+  // Informações do Sistema
+  async getSystemInfo(): Promise<{ version: string; name: string; footerCompany: string }> {
+    const response = await apiMVC.get<{ version: string; name: string; footerCompany: string }>('/api/system/info');
+    return response.data;
   }
 };

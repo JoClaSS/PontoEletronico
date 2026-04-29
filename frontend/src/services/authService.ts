@@ -62,6 +62,7 @@ class AuthService {
       
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('auth_user', JSON.stringify(data.usuario));
+      localStorage.setItem('auth_login_time', Date.now().toString());
 
       return data;
     } catch (error) {
@@ -75,6 +76,7 @@ class AuthService {
     this.user = null;
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_login_time');
   }
 
   isAuthenticated(): boolean {
@@ -109,6 +111,19 @@ class AuthService {
   async checkTokenValidity(): Promise<boolean> {
     if (!this.token) return false;
 
+    // Verificar expiração local (9 horas = 32400000ms)
+    const loginTime = localStorage.getItem('auth_login_time');
+    if (loginTime) {
+      const timeElapsed = Date.now() - parseInt(loginTime);
+      const tokenExpireTime = 32400000; // 9 horas em ms
+      
+      if (timeElapsed >= tokenExpireTime) {
+        console.log('🔐 Token expirado localmente, fazendo logout');
+        this.logout();
+        return false;
+      }
+    }
+
     try {
       const response = await fetch(`${this.baseURL}/auth/user-info`, {
         headers: {
@@ -128,6 +143,23 @@ class AuthService {
       this.logout();
       return false;
     }
+  }
+
+  // Verificar tempo restante do token em minutos
+  getTokenTimeRemaining(): number {
+    const loginTime = localStorage.getItem('auth_login_time');
+    if (!loginTime || !this.token) return 0;
+
+    const timeElapsed = Date.now() - parseInt(loginTime);
+    const tokenExpireTime = 32400000; // 9 horas em ms
+    const timeRemaining = tokenExpireTime - timeElapsed;
+    
+    return Math.max(0, Math.floor(timeRemaining / 60000)); // retorna em minutos
+  }
+
+  // Verificar se o token está próximo da expiração (menos de 5 minutos)
+  isTokenExpiringSoon(): boolean {
+    return this.getTokenTimeRemaining() <= 5;
   }
 
   // Fazer requisições autenticadas

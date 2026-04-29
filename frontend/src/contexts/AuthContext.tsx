@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, CircularProgress, Typography, Alert, Snackbar } from '@mui/material';
 import authService from '../services/authService';
 import type { Usuario } from '../types';
 
@@ -38,6 +38,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [primeiroLogin, setPrimeiroLogin] = useState(false);
   const hasInitialized = useRef(false);
+
+  // Verificação periódica de token (a cada 5 minutos)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const tokenCheckInterval = setInterval(async () => {
+      const isValid = await authService.checkTokenValidity();
+      if (!isValid) {
+        logout();
+      }
+    }, 5 * 60 * 1000); // 5 minutos
+
+    return () => clearInterval(tokenCheckInterval);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (hasInitialized.current) return;

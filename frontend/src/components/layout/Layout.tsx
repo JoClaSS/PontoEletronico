@@ -28,11 +28,14 @@ const Layout: React.FC = () => {
   const { user, logout, isAdmin, isVisitante } = useAuth();
   const [logoEmpresa, setLogoEmpresa] = useState<string | null>(null);
   const [nomeEmpresa, setNomeEmpresa] = useState<string>('Mundial Ciclo');
+  const [versaoSistema, setVersaoSistema] = useState<string>('1.0.0');
+  const [footerEmpresa, setFooterEmpresa] = useState<string>('Mundial Ciclo - 2026');
 
-  // Carregar configurações da empresa para pegar a logo
+  // Carregar configurações da empresa para pegar a logo e informações do sistema
   useEffect(() => {
-    const carregarLogoEmpresa = async () => {
+    const carregarDadosIniciais = async () => {
       try {
+        // Carregar configurações da empresa
         const configuracoes = await apiService.getConfiguracoes();
         if (configuracoes.fotoEmpresa) {
           setLogoEmpresa(configuracoes.fotoEmpresa);
@@ -40,12 +43,21 @@ const Layout: React.FC = () => {
         if (configuracoes.nomeEmpresa) {
           setNomeEmpresa(configuracoes.nomeEmpresa);
         }
+
+        // Carregar informações do sistema
+        const systemInfo = await apiService.getSystemInfo();
+        if (systemInfo.version) {
+          setVersaoSistema(systemInfo.version);
+        }
+        if (systemInfo.footerCompany) {
+          setFooterEmpresa(systemInfo.footerCompany);
+        }
       } catch (error) {
-        console.log('Não foi possível carregar logo da empresa:', error);
+        console.log('Erro ao carregar dados iniciais:', error);
       }
     };
 
-    carregarLogoEmpresa();
+    carregarDadosIniciais();
   }, []);
 
   const handleNavigation = (path: string) => {
@@ -295,10 +307,10 @@ const Layout: React.FC = () => {
         }}
       >
         <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '8px', sm: '8px', md: '10px' } }}>
-          Sistema de ponto eletrônico v1.0.0
+          Sistema de ponto eletrônico v{versaoSistema}
         </Typography>
         <Typography variant="body1" sx={{ color: 'white', mt: 1, fontSize: { xs: '8px', sm: '8px', md: '10px' } }}>
-          Mundial Ciclo - 2026
+          {footerEmpresa}
         </Typography>
       </Box>
     </Box>
