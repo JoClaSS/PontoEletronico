@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { Box, CircularProgress, Typography, Alert, Snackbar } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import authService from '../services/authService';
 import type { Usuario } from '../types';
 

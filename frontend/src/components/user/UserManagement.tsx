@@ -312,7 +312,7 @@ const UserManagement: React.FC = () => {
     setPaginaAtual(1); // Volta para primeira página ao limpar filtros
   };
 
-  const handleMudancaPagina = (event: React.ChangeEvent<unknown>, novaPagina: number) => {
+  const handleMudancaPagina = (_event: React.ChangeEvent<unknown>, novaPagina: number) => {
     setPaginaAtual(novaPagina);
   };
 

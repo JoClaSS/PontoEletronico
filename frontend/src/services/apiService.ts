@@ -1,84 +1,86 @@
 import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, CriarUsuarioRequest, ConfiguracaoEmpresa, AtualizarConfiguracaoRequest } from '../types';
-import { apiMVCService } from './apiMVC';
+import { usuarioService } from './usuarioService';
+import { pontoService } from './pontoService';
+import { configuracaoService } from './configuracaoService';
+import { systemService } from './systemService';
 
-// Serviço simplificado usando apenas MVC
+// Serviço centralizado que utiliza os services específicos
 export class ApiService {
   // Usuários
   async getUsuarios(): Promise<Usuario[]> {
-    return apiMVCService.getUsuarios();
+    return usuarioService.getUsuarios();
   }
   
   async getFuncionarios(): Promise<Usuario[]> {
-    return apiMVCService.getFuncionarios();
+    return usuarioService.getFuncionarios();
   }
 
   async getUsuarioById(id: string): Promise<Usuario> {
-    return apiMVCService.getUsuarioById(id);
+    return usuarioService.getUsuarioById(id);
   }
 
   async getUsuarioByEmail(email: string): Promise<Usuario> {
-    return apiMVCService.getUsuarioByEmail(email);
+    return usuarioService.getUsuarioByEmail(email);
   }
 
   async criarUsuario(usuario: CriarUsuarioRequest): Promise<Usuario> {
-    return apiMVCService.criarUsuario(usuario);
+    return usuarioService.criarUsuario(usuario);
   }
 
   async desativarUsuario(id: string): Promise<void> {
-    return apiMVCService.desativarUsuario(id);
+    return usuarioService.desativarUsuario(id);
   }
 
   async reativarUsuario(id: string): Promise<void> {
-    return apiMVCService.reativarUsuario(id);
+    return usuarioService.reativarUsuario(id);
+  }
+
+  async buscarUsuarios(nome: string): Promise<Usuario[]> {
+    return usuarioService.buscarUsuarios(nome);
+  }
+
+  async getUsuariosAtivos(): Promise<Usuario[]> {
+    // Mantém compatibilidade - MVC não tem conceito de ativo/inativo
+    return usuarioService.getUsuarios();
   }
 
   // Pontos Eletrônicos
   async registrarPonto(data: RegistrarPontoRequest): Promise<PontoEletronico> {
-    return apiMVCService.registrarPonto(data);
+    return pontoService.registrarPonto(data);
   }
 
   async getPontosDeHoje(usuarioId: string): Promise<PontoEletronico[]> {
-    const hoje = new Date().toISOString().split('T')[0];
-    return apiMVCService.getPontosPorUsuarioEData(usuarioId, hoje);
+    return pontoService.getPontosDeHoje(usuarioId);
   }
 
   async getPontosPorData(usuarioId: string, data: string): Promise<PontoEletronico[]> {
-    return apiMVCService.getPontosPorUsuarioEData(usuarioId, data);
+    return pontoService.getPontosPorUsuarioEData(usuarioId, data);
   }
 
   async getPontosPorPeriodo(usuarioId: string, filtros: FiltrosPontos): Promise<PontoEletronico[]> {
-    return apiMVCService.getPontosPorPeriodo(usuarioId, filtros);
+    return pontoService.getPontosPorPeriodo(usuarioId, filtros);
   }
 
   async getRelatorioHoras(usuarioId: string, filtros: FiltrosPontos): Promise<RelatorioHorasResponse> {
-    return apiMVCService.getRelatorioHoras(usuarioId, filtros);
-  }
-
-  async buscarUsuarios(nome: string): Promise<Usuario[]> {
-    return apiMVCService.buscarUsuarios(nome);
-  }
-
-  async getUsuariosAtivos(): Promise<Usuario[]> {
-    // MVC não tem conceito de ativo/inativo, retorna todos
-    return apiMVCService.getUsuarios();
+    return pontoService.getRelatorioHoras(usuarioId, filtros);
   }
 
   async getListaPresencaDodia(data?: string): Promise<Usuario[]> {
-    return apiMVCService.getListaPresencaDodia(data);
+    return pontoService.getListaPresencaDodia(data);
   }
 
   // Configurações da Empresa
   async getConfiguracoes(): Promise<ConfiguracaoEmpresa> {
-    return apiMVCService.getConfiguracoes();
+    return configuracaoService.getConfiguracoes();
   }
 
   async salvarConfiguracoes(configuracoes: AtualizarConfiguracaoRequest): Promise<ConfiguracaoEmpresa> {
-    return apiMVCService.salvarConfiguracoes(configuracoes);
+    return configuracaoService.salvarConfiguracoes(configuracoes);
   }
 
   // Informações do Sistema
   async getSystemInfo(): Promise<{ version: string; name: string; footerCompany: string }> {
-    return apiMVCService.getSystemInfo();
+    return systemService.getSystemInfo();
   }
 }
 

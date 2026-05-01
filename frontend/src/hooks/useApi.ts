@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { apiService } from '../services/apiService';
+import { usuarioService } from '../services/usuarioService';
+import { pontoService } from '../services/pontoService';
+import { configuracaoService } from '../services/configuracaoService';
 import type { Usuario, PontoEletronico, RegistrarPontoRequest, RelatorioHorasResponse, FiltrosPontos, ApiState, CriarUsuarioRequest, ConfiguracaoEmpresa, AtualizarConfiguracaoRequest } from '../types';
 
 export const useApi = () => {
@@ -19,7 +21,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const usuarios = await apiService.getUsuarios();
+        const usuarios = await usuarioService.getUsuarios();
         setState({ data: usuarios, loading: false, error: null });
       } catch (error: any) {
         const errorMessage = error.userMessage || error.message || 'Erro ao carregar usuários';
@@ -38,7 +40,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const funcionarios = await apiService.getFuncionarios();
+        const funcionarios = await usuarioService.getFuncionarios();
         setState({ data: funcionarios, loading: false, error: null });
       } catch (error: any) {
         const errorMessage = error.userMessage || error.message || 'Erro ao carregar funcionários';
@@ -57,7 +59,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const novoUsuario = await apiService.criarUsuario(usuario);
+        const novoUsuario = await usuarioService.criarUsuario(usuario);
         // Recarrega a lista após criar
         await loadUsuarios();
         return novoUsuario;
@@ -76,7 +78,7 @@ export const useApi = () => {
     const desativarUsuario = async (id: string): Promise<void> => {
       setLoading(true);
       try {
-        await apiService.desativarUsuario(id);
+        await usuarioService.desativarUsuario(id);
         // Recarrega a lista após desativar
         await loadUsuarios();
       } catch (error: any) {
@@ -108,7 +110,7 @@ export const useApi = () => {
     const reativarUsuario = async (id: string): Promise<void> => {
       setLoading(true);
       try {
-        await apiService.reativarUsuario(id);
+        await usuarioService.reativarUsuario(id);
         // Recarrega a lista após reativar
         await loadUsuarios();
       } catch (error: any) {
@@ -138,7 +140,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const ponto = await apiService.registrarPonto(data);
+        const ponto = await pontoService.registrarPonto(data);
         // Recarrega a lista após registrar usando o usuarioId do request
         if (data.usuarioId) {
           const hoje = new Date().toISOString().split('T')[0];
@@ -163,7 +165,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const pontos = await apiService.getPontosDeHoje(userId);
+        const pontos = await pontoService.getPontosDeHoje(userId);
         //console.log('[useApi] Pontos carregados:', pontos);
         setState({ data: pontos, loading: false, error: null });
       } catch (error: any) {
@@ -185,7 +187,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const pontos = await apiService.getPontosPorData(userId, data);
+        const pontos = await pontoService.getPontosPorUsuarioEData(userId, data);
         //console.log('[useApi] Pontos carregados por data:', pontos);
         setState({ data: pontos, loading: false, error: null });
       } catch (error: any) {
@@ -206,7 +208,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const pontos = await apiService.getPontosPorPeriodo(userId, filtros);
+        const pontos = await pontoService.getPontosPorPeriodo(userId, filtros);
         setState({ data: pontos, loading: false, error: null });
       } catch (error: any) {
         const errorMessage = error.userMessage || error.message || 'Erro ao carregar pontos por período';
@@ -242,7 +244,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const relatorio = await apiService.getRelatorioHoras(usuarioId, filtros);
+        const relatorio = await pontoService.getRelatorioHoras(usuarioId, filtros);
         setState({ data: relatorio, loading: false, error: null });
       } catch (error: any) {
         const errorMessage = error.userMessage || error.message || 'Erro ao gerar relatório';
@@ -272,7 +274,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const configuracoes = await apiService.getConfiguracoes();
+        const configuracoes = await configuracaoService.getConfiguracoes();
         setState({ data: configuracoes, loading: false, error: null });
         return configuracoes;
       } catch (error: any) {
@@ -293,7 +295,7 @@ export const useApi = () => {
       setLoading(true);
       
       try {
-        const configuracoesSalvas = await apiService.salvarConfiguracoes(configuracoes);
+        const configuracoesSalvas = await configuracaoService.salvarConfiguracoes(configuracoes);
         setState({ data: configuracoesSalvas, loading: false, error: null });
         return configuracoesSalvas;
       } catch (error: any) {

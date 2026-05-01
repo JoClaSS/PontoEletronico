@@ -28,7 +28,8 @@ import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { TipoPonto } from '../../types';
 import type { TipoPonto as TipoPontoType, Usuario } from '../../types';
-import { apiService } from '../../services/apiService';
+import { configuracaoService } from '../../services/configuracaoService';
+import { pontoService } from '../../services/pontoService';
 
 const RegisterPoint: React.FC = () => {
   const { selectedUser, setSelectedUser, usuarios, setUsuarios, notifyPontosUpdate, pontosUpdateTrigger } = useAppContext();
@@ -47,7 +48,7 @@ const RegisterPoint: React.FC = () => {
   useEffect(() => {
     const carregarHorarios = async () => {
       try {
-        const config = await apiService.getConfiguracoes();
+        const config = await configuracaoService.getConfiguracoes();
         setHorarioPermitido({
           checkin: config.horarioCheckin || '08:00',
           checkout: config.horarioCheckout || '18:00'
@@ -133,7 +134,7 @@ const RegisterPoint: React.FC = () => {
     try {
       setLoadingPresenca(true);
       const hoje = format(new Date(), 'yyyy-MM-dd');
-      const usuariosPresentes = await apiService.getListaPresencaDodia(hoje);
+      const usuariosPresentes = await pontoService.getListaPresencaDodia(hoje);
       setListaPresenca(usuariosPresentes);
     } catch (error) {
       console.error('Erro ao carregar lista de presença:', error);
@@ -368,7 +369,7 @@ const RegisterPoint: React.FC = () => {
                             }
                           />
                         </ListItem>
-                        {index < pontosHook.data.length - 1 && <Divider />}
+                        {index < (pontosHook.data?.length || 0) - 1 && <Divider />}
                       </React.Fragment>
                     ))}
                   </List>

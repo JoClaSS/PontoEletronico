@@ -20,7 +20,8 @@ import {
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiService } from '../../services/apiService';
+import { configuracaoService } from '../../services/configuracaoService';
+import { systemService } from '../../services/systemService';
 
 const Layout: React.FC = () => {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ const Layout: React.FC = () => {
     const carregarDadosIniciais = async () => {
       try {
         // Carregar configurações da empresa
-        const configuracoes = await apiService.getConfiguracoes();
+        const configuracoes = await configuracaoService.getConfiguracoes();
         if (configuracoes.fotoEmpresa) {
           setLogoEmpresa(configuracoes.fotoEmpresa);
         }
@@ -45,7 +46,7 @@ const Layout: React.FC = () => {
         }
 
         // Carregar informações do sistema
-        const systemInfo = await apiService.getSystemInfo();
+        const systemInfo = await systemService.getSystemInfo();
         if (systemInfo.version) {
           setVersaoSistema(systemInfo.version);
         }

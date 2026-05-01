@@ -156,8 +156,8 @@ const Solicitacoes: React.FC = () => {
 
   const carregarMotivos = async () => {
     try {
-      const { apiMVCService } = await import('../../services/apiMVC');
-      const data = await apiMVCService.getMotivos();
+      const { solicitacaoService } = await import('../../services/solicitacaoService');
+      const data = await solicitacaoService.getMotivos();
       setMotivos(data);
     } catch (error) {
       console.error('Erro ao carregar motivos:', error);
@@ -168,10 +168,10 @@ const Solicitacoes: React.FC = () => {
     if (!isAdmin()) return;
     
     try {
-      const { apiMVCService } = await import('../../services/apiMVC');
+      const { solicitacaoService } = await import('../../services/solicitacaoService');
       const [contagemData, recenteData] = await Promise.all([
-        apiMVCService.contarSolicitacoesEmAberto(),
-        apiMVCService.buscarSolicitacaoMaisRecenteAberta()
+        solicitacaoService.contarSolicitacoesEmAberto(),
+        solicitacaoService.buscarSolicitacaoMaisRecenteAberta()
       ]);
       setSolicitacoesEmAberto(contagemData.quantidade);
       setSolicitacaoMaisRecente(recenteData.solicitacao);
@@ -185,8 +185,8 @@ const Solicitacoes: React.FC = () => {
     
     setLoading(true);
     try {
-      const { apiMVCService } = await import('../../services/apiMVC');
-      const data = await apiMVCService.getSolicitacoesPorUsuario(selectedUser.id);
+      const { solicitacaoService } = await import('../../services/solicitacaoService');
+      const data = await solicitacaoService.getSolicitacoesPorUsuario(selectedUser.id);
       setSolicitacoes(data);
     } catch (error) {
       console.error('Erro ao carregar solicitações:', error);
@@ -253,7 +253,7 @@ const Solicitacoes: React.FC = () => {
       // Formato da data para envio
       const dataFormatada = format(dataReferencia, 'yyyy-MM-dd');
       
-      const { apiMVCService } = await import('../../services/apiMVC');
+      const { solicitacaoService } = await import('../../services/solicitacaoService');
       
       // Se o motivo requer anexo ou se um anexo foi fornecido, usa a API de multipart
       if (motivoSelecionado?.requerAnexo || arquivoSelecionado) {        
@@ -276,10 +276,10 @@ const Solicitacoes: React.FC = () => {
           formData.append('anexo', arquivoSelecionado);
         }
         
-        await apiMVCService.criarSolicitacaoComAnexo(formData);
+        await solicitacaoService.criarSolicitacaoComAnexo(formData);
       } else {
         // Usa a API JSON normal
-        await apiMVCService.criarSolicitacao({
+        await solicitacaoService.criarSolicitacao({
           ...novasSolicitacao,
           dataReferencia: dataFormatada,
           descricao: novasSolicitacao.descricao.trim(),
@@ -322,8 +322,8 @@ const Solicitacoes: React.FC = () => {
 
   const handleDownloadAnexo = async (solicitacaoId: string, nomeArquivo: string) => {
     try {
-      const { apiMVCService } = await import('../../services/apiMVC');
-      const blob = await apiMVCService.baixarAnexoSolicitacao(solicitacaoId);
+      const { solicitacaoService } = await import('../../services/solicitacaoService');
+      const blob = await solicitacaoService.baixarAnexoSolicitacao(solicitacaoId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
@@ -362,10 +362,10 @@ const Solicitacoes: React.FC = () => {
     if (!solicitacaoParaUsar) return;
     
     try {
-      const { apiMVCService } = await import('../../services/apiMVC');
+      const { pontoService } = await import('../../services/pontoService');
       // Busca os pontos da data referente
       //console.log('[Solicitacoes] Buscando pontos para usuário:', solicitacaoParaUsar.usuarioId, 'data:', solicitacaoParaUsar.dataReferencia);
-      const pontos = await apiMVCService.getPontosPorData(solicitacaoParaUsar.usuarioId, solicitacaoParaUsar.dataReferencia);
+      const pontos = await pontoService.getPontosPorUsuarioEData(solicitacaoParaUsar.usuarioId, solicitacaoParaUsar.dataReferencia);
       //console.log('[Solicitacoes] Pontos carregados:', pontos);
       
       if (pontos && pontos.length > 0) {
@@ -428,9 +428,9 @@ const Solicitacoes: React.FC = () => {
     }
     
     try {
-      const { apiMVCService } = await import('../../services/apiMVC');
+      const { solicitacaoService } = await import('../../services/solicitacaoService');
       // Inclui os pontos editados e observação na requisição
-      await apiMVCService.resolverSolicitacao(solicitacaoSelecionada.id, {
+      await solicitacaoService.resolverSolicitacao(solicitacaoSelecionada.id, {
         pontos: pontosReferencia,
         observacao: observacaoResolucao.trim(),
         dataReferencia: solicitacaoSelecionada.dataReferencia
@@ -485,8 +485,8 @@ const Solicitacoes: React.FC = () => {
     }
     
     try {
-      const { apiMVCService } = await import('../../services/apiMVC');
-      await apiMVCService.excluirSolicitacao(solicitacaoSelecionada.id);
+      const { solicitacaoService } = await import('../../services/solicitacaoService');
+      await solicitacaoService.excluirSolicitacao(solicitacaoSelecionada.id);
 
       setSnackbar({
         open: true,
@@ -591,7 +591,7 @@ const Solicitacoes: React.FC = () => {
     setPaginaAtual(1); // Volta para primeira página ao limpar filtros
   };
 
-  const handleMudancaPagina = (event: React.ChangeEvent<unknown>, novaPagina: number) => {
+  const handleMudancaPagina = (_event: React.ChangeEvent<unknown>, novaPagina: number) => {
     setPaginaAtual(novaPagina);
   };
 

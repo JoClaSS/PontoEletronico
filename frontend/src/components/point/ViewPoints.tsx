@@ -34,7 +34,6 @@ import {
   PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import { useAppContext } from '../../contexts/AppContext';
 import { useApi } from '../../hooks/useApi';
@@ -72,11 +71,10 @@ function TabPanel(props: TabPanelProps) {
 
 const ViewPoints: React.FC = () => {
   const { selectedUser, setSelectedUser, usuarios, setUsuarios, pontosUpdateTrigger } = useAppContext();
-  const { useUsuarios, usePontos, useRelatorios } = useApi();
+  const { useUsuarios, usePontos } = useApi();
   const { user, isAdmin, isFuncionario, isVisitante } = useAuth();
   const usuariosHook = useUsuarios();
   const pontosHook = usePontos(selectedUser?.id);
-  const relatoriosHook = useRelatorios();
 
   const [tabValue, setTabValue] = useState(0);
   const [filtros, setFiltros] = useState<FiltrosPontos>({
@@ -270,7 +268,7 @@ const ViewPoints: React.FC = () => {
       // Adicionar registros (já estão ordenados por data mais recente primeiro, vamos inverter para PDF)
       const registrosOrdenados = [...registrosAgrupados].reverse();
       
-      registrosOrdenados.forEach((registro, index) => {
+      registrosOrdenados.forEach((registro) => {
         //console.log(`Adicionando registro ${index}:`, registro); // Debug
         
         // Verificar se precisa de nova página
@@ -522,7 +520,7 @@ const ViewPoints: React.FC = () => {
                     label="Data Início"
                     value={dayjs(filtros.dataInicio)}
                     onChange={(newValue) => {
-                      const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
+                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
                       setFiltros(prev => ({ ...prev, dataInicio: formattedDate }));
                     }}
                     format="DD/MM/YYYY"
@@ -537,7 +535,7 @@ const ViewPoints: React.FC = () => {
                     label="Data Fim"
                     value={dayjs(filtros.dataFim)}
                     onChange={(newValue) => {
-                      const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
+                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
                       setFiltros(prev => ({ ...prev, dataFim: formattedDate }));
                     }}
                     format="DD/MM/YYYY"
@@ -654,7 +652,7 @@ const ViewPoints: React.FC = () => {
                     label="Data Início"
                     value={dayjs(filtros.dataInicio)}
                     onChange={(newValue) => {
-                      const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
+                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
                       setFiltros(prev => ({ ...prev, dataInicio: formattedDate }));
                     }}
                     format="DD/MM/YYYY"
@@ -669,7 +667,7 @@ const ViewPoints: React.FC = () => {
                     label="Data Fim"
                     value={dayjs(filtros.dataFim)}
                     onChange={(newValue) => {
-                      const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
+                      const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : '';
                       setFiltros(prev => ({ ...prev, dataFim: formattedDate }));
                     }}
                     format="DD/MM/YYYY"

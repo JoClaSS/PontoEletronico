@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Card,
@@ -39,7 +39,7 @@ const RegisterUser: React.FC = () => {
     role: 'FUNCIONARIO'
   });
 
-  const [roles, setRoles] = useState<RoleType[]>([]);
+  // const [roles, setRoles] = useState<RoleType[]>([]);
   const [snackbar, setSnackbar] = useState({ 
     open: false, 
     message: '', 
@@ -47,25 +47,6 @@ const RegisterUser: React.FC = () => {
   });
 
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // Carregar roles disponíveis
-    const loadRoles = async () => {
-      try {
-        const response = await fetch('/api/usuarios/roles');
-        if (response.ok) {
-          const rolesData = await response.json();
-          setRoles(rolesData);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar roles:', error);
-        // Fallback para roles hardcoded
-        setRoles(['FUNCIONARIO', 'ADMIN', 'VISITANTE']);
-      }
-    };
-    
-    loadRoles();
-  }, []);
 
   const handleInputChange = (field: keyof FormData) => (
     event: React.ChangeEvent<HTMLInputElement>
