@@ -9,7 +9,7 @@ import {
   Alert,
   Snackbar,
   Avatar,
-  IconButton,
+  //IconButton,
   Stack,
   CircularProgress,
   Dialog,
@@ -25,8 +25,8 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiService } from '../../services/apiService';
-import type { ConfiguracaoEmpresa, AtualizarConfiguracaoRequest } from '../../types';
+import { configuracaoService } from '../../services/configuracaoService';
+import type { AtualizarConfiguracaoRequest } from '../../types';
 
 interface FormData {
   nomeEmpresa: string;
@@ -40,7 +40,7 @@ interface FormData {
 }
 
 const Configuracoes: React.FC = () => {
-  const { user, isAdmin, isFuncionario } = useAuth();
+  const { isAdmin } = useAuth();
   
   // Verificar permissão antes de renderizar qualquer coisa
   const hasPermission = isAdmin();
@@ -77,7 +77,7 @@ const Configuracoes: React.FC = () => {
     
     setLoadingConf(true);
     try {
-      const configuracoes = await apiService.getConfiguracoes();
+      const configuracoes = await configuracaoService.getConfiguracoes();
       
       setFormData({
         nomeEmpresa: configuracoes.nomeEmpresa || 'Mundial Ciclo',
@@ -242,7 +242,7 @@ const Configuracoes: React.FC = () => {
       // Log para debug
       //console.log('Dados sendo enviados:', JSON.stringify(request, null, 2));
 
-      await apiService.salvarConfiguracoes(request);
+      await configuracaoService.salvarConfiguracoes(request);
 
       setSnackbar({
         open: true,
