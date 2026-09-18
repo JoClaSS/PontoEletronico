@@ -42,7 +42,7 @@ class PontoEletronicoServiceTest {
     @Test
     void deveRegistrarPrimeiroPontoDoDiaComoEntradaUm() {
         UUID usuarioId = UUID.randomUUID();
-        LocalDateTime dataHora = LocalDateTime.of(2026, 8, 28, 9, 0);
+        LocalDateTime dataHora = java.time.LocalDate.now().atTime(9, 0);
         Usuario usuario = Usuario.builder().id(usuarioId).nome("Ana").build();
         RegistrarPontoRequest request = RegistrarPontoRequest.builder()
                 .usuarioId(usuarioId)
@@ -65,7 +65,7 @@ class PontoEletronicoServiceTest {
     @Test
     void naoDeveRegistrarPontoAntesDoIntervaloMinimo() {
         UUID usuarioId = UUID.randomUUID();
-        LocalDateTime primeiraEntrada = LocalDateTime.of(2026, 8, 28, 9, 0);
+        LocalDateTime primeiraEntrada = java.time.LocalDate.now().atTime(9, 0);
         LocalDateTime novaMarcacao = primeiraEntrada.plusMinutes(10);
         PontoEletronico registroExistente = PontoEletronico.builder()
                 .usuario(Usuario.builder().id(usuarioId).build())
