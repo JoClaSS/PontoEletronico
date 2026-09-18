@@ -80,11 +80,18 @@ escritos para as camadas de serviço/caso de uso, com o mesmo número de classes
 de teste e de casos de teste por classe, o que confirma a equivalência
 funcional entre as duas implementações. Observou-se, contudo, uma diferença
 expressiva no tempo de carregamento do contexto Spring: 6,083 s no
-`mvcpontoeletronico` contra 0,001 s no `arquiteturalimpa`. Essa diferença é
-atribuída à ordem de execução e ao estado de *cache* do Maven/Spring no momento
-da coleta e **não** foi isolada estatisticamente (execução única, sem
-repetições), de modo que não se pôde afirmar, a partir apenas desse dado, que a
-Clean Architecture inicializa de forma consistentemente mais rápida.
+`mvcpontoeletronico` contra 0,001 s no `arquiteturalimpa`. Investigação do
+código-fonte dos dois testes (Seção 2.4) revelou a causa real dessa diferença:
+não se trata de uma propriedade da arquitetura, e sim de uma **assimetria na
+configuração dos testes** — o teste de contexto do `mvcpontoeletronico` usa
+`@SpringBootTest` (sobe o contexto Spring completo, conectando a um banco
+PostgreSQL real via `.env`), enquanto o do `arquiteturalimpa` foi
+deliberadamente implementado **sem** `@SpringBootTest` (comentário no código
+explica que subir o contexto completo exigiria um Postgres real acessível).
+Ou seja, o teste de contexto do `arquiteturalimpa` não valida efetivamente a
+inicialização do Spring; os 0,001 s medidos refletem a execução de um método
+de teste vazio, não a inicialização de uma aplicação Spring Boot. Essa
+diferença de configuração é tratada como limitação metodológica na Seção 4.2.
 
 ### 2.3 Ampliação da Cobertura de Testes (Camada de Apresentação)
 
@@ -110,6 +117,72 @@ O acréscimo elevou a cobertura de **9 para 30 testes por projeto** (aumento de
 duas suítes (mesmo número de classes de teste e de casos por classe). A
 ampliação também revelou duas diferenças de comportamento não identificadas na
 suíte original, descritas na Seção 3.3.
+
+### 2.4 Métricas Formais de Cobertura de Código (JaCoCo)
+
+Para complementar a contagem de testes com uma métrica objetiva de qualidade,
+o plugin `jacoco-maven-plugin` (versão 0.8.12) foi adicionado ao `pom.xml` de
+ambos os projetos, com execução do *goal* `prepare-agent` (instrumentação em
+tempo de execução) seguida de `report` na fase `test`. Os relatórios foram
+gerados em `target/site/jacoco/` (HTML e CSV) a partir da mesma execução de
+`mvn test` usada na Seção 2.3, garantindo que a métrica de cobertura reflita
+exatamente a suíte de 30 testes por projeto.
+
+**Cobertura agregada (todas as classes de `src/main/java`):**
+
+| Métrica | `mvcpontoeletronico` | `arquiteturalimpa` |
+|---|---|---|
+| Cobertura de linhas | 409/1138 (**35,9%**) | 282/992 (**28,4%**) |
+| Cobertura de desvios (*branches*) | 57/339 (**16,8%**) | 55/321 (**17,1%**) |
+| Cobertura de instruções | 1777/5112 (**34,8%**) | 1180/4398 (**26,8%**) |
+
+**Cobertura de linhas por camada** (agrupamento por pacote, mesmo critério da
+Seção 2.1):
+
+| Camada | `mvcpontoeletronico` | `arquiteturalimpa` |
+|---|---|---|
+| Negócio/Caso de uso (`services` / `application.*`) | 237/586 (40,4%) | 176/428 (41,1%) |
+| Domínio/Modelo (`entities` / `domain.*`) | 19/66 (28,8%) | 30/71 (42,3%) |
+| Apresentação (`controllers` / `interfaces.web`) | 65/285 (22,8%) | 21/104 (20,2%) |
+| DTO | 13/16 (81,2%) | 13/16 (81,2%) |
+| Persistência (`repositories` / `infrastructure.persistence.*`) | 0/2 (0%) | 0/190 (**0%**) |
+| Infraestrutura de segurança (`security` / `infrastructure.security`) | 3/68 (4,4%) | 0/67 (0%) |
+| Infraestrutura de configuração (`config` / `infrastructure.config`) | 55/82 (67,1%) | 9/75 (12%) |
+| Cross-cutting (`exception` / `*.exception`) | 16/30 (53,3%) | 32/38 (84,2%)* |
+
+\* Inclui o `GlobalExceptionHandler`, exercitado indiretamente pelos testes de
+controller que verificam os códigos de status 400/401/404 (Seção 3.3).
+
+O agrupamento por camada foi obtido com um script auxiliar
+(`scripts/coverage_by_layer.ps1`), criado para tornar a extração dos dados do
+`jacoco.csv` reproduzível, em vez de inspecionar manualmente o relatório HTML.
+
+**Achados principais:**
+
+1. **A cobertura de negócio é equivalente entre as arquiteturas** (40,4% vs.
+   41,1%), consistente com o fato de as duas suítes de teste de
+   serviço/caso de uso terem o mesmo número de classes e de casos de teste
+   (Seção 2.2). Isso reforça que a comparação de arquitetura não introduziu
+   viés de esforço de teste desigual nessa camada.
+2. **A camada de persistência do Clean Architecture concentra 190 linhas
+   totalmente descobertas** (adaptadores, *mappers* e entidades JPA), contra
+   apenas 2 linhas na versão em camadas. Esse número quantifica, com
+   evidência de ferramenta, o achado já levantado na Seção 2.1 (49% mais
+   arquivos): a inversão de dependência introduziu uma quantidade
+   significativa de código de infraestrutura que, neste trabalho, permaneceu
+   sem nenhum teste automatizado — um débito de teste concreto que a
+   arquitetura em camadas simplesmente não possui, pois delega essa
+   responsabilidade ao Spring Data JPA sem código intermediário próprio.
+3. **A discrepância na cobertura de "Infraestrutura de configuração" (67,1%
+   vs. 12%) não reflete uma diferença arquitetural**, mas sim a assimetria de
+   configuração de teste descrita na Seção 2.2: o `@SpringBootTest` do
+   `mvcpontoeletronico` sobe o contexto Spring completo (incluindo
+   `SecurityConfig`, `WebConfig` e `AdminUserInitializer`) contra um banco
+   PostgreSQL real, cobrindo essas classes como efeito colateral; o teste
+   equivalente do `arquiteturalimpa` é um método vazio, sem `@SpringBootTest`.
+   Essa assimetria é tratada como limitação na Seção 4.2 e deveria ser
+   corrigida antes de qualquer conclusão comparativa sobre essa camada
+   específica.
 
 ## 3. Resultados Qualitativos: Acoplamento e Testabilidade
 
@@ -211,11 +284,21 @@ serviço isoladamente:
   de cada entidade (modelo de domínio e entidade JPA) e suas respectivas
   classes de mapeamento, o que aumentou o esforço de escrita e manutenção de
   código repetitivo (*boilerplate*).
-- O ganho de desacoplamento não foi mensurado por meio de métricas
-  formais de qualidade de software (por exemplo, *coupling between objects*,
-  *afferent/efferent coupling* ou complexidade ciclomática calculadas por
-  ferramenta de análise estática), tendo sido avaliado apenas de forma
-  qualitativa, por inspeção manual do código-fonte.
+- O ganho de desacoplamento foi mensurado parcialmente por meio de métricas
+  formais de cobertura de código (JaCoCo, Seção 2.4), mas outras métricas de
+  qualidade estática (por exemplo, *coupling between objects*,
+  *afferent/efferent coupling* ou complexidade ciclomática agregada por
+  ferramenta como PMD/Checkstyle/SonarQube) ainda não foram coletadas,
+  permanecendo como trabalho futuro (ver sugestões de melhoria).
+- A comparação da cobertura da camada "Infraestrutura de configuração"
+  (Seção 2.4) foi invalidada por uma assimetria de configuração de teste: o
+  teste de contexto do `mvcpontoeletronico` usa `@SpringBootTest` (contexto
+  Spring completo, conectando a um PostgreSQL real), enquanto o do
+  `arquiteturalimpa` é um método vazio sem `@SpringBootTest` — diferença de
+  configuração de teste entre os projetos, e não uma propriedade das
+  arquiteturas comparadas. Essa assimetria também explicou, a posteriori, a
+  diferença de tempo de inicialização do contexto Spring relatada na
+  Seção 2.2 (6,083 s vs. 0,001 s).
 - Mesmo após a ampliação da suíte (Seção 2.3), que elevou a cobertura de 9
   para 30 testes por projeto ao incluir a camada de controller, os testes de
   fatia web (`@WebMvcTest`) foram executados com o filtro JWT e a
@@ -225,15 +308,12 @@ serviço isoladamente:
   persistência (`*RepositoryAdapter`/`*JpaRepository`) também continuam sem
   testes de integração com banco de dados, pois isso exigiria um banco H2 ou
   Testcontainers compatível com as migrations Flyway (atualmente escritas
-  para PostgreSQL), o que não foi configurado neste trabalho. A conclusão
-  sobre testabilidade, portanto, ainda se limita às camadas efetivamente
-  testadas (serviço/caso de uso e controller), não podendo ser generalizada
-  para a totalidade da base de código.
-- A diferença de tempo de inicialização do contexto Spring observada entre os
-  dois projetos (0,001 s contra 6,083 s) foi obtida em uma única execução de
-  cada suíte, sem repetições nem controle de variáveis externas (estado do
-  sistema operacional, cache de disco, *garbage collection*), não devendo ser
-  interpretada como medida confiável de desempenho de inicialização.
+  para PostgreSQL), o que não foi configurado neste trabalho. A cobertura de
+  linhas medida por JaCoCo confirmou esse ponto de forma quantitativa: 0%
+  (0/190 linhas) na camada de persistência do `arquiteturalimpa` — a
+  conclusão sobre testabilidade, portanto, ainda se limita às camadas
+  efetivamente testadas (serviço/caso de uso e controller), não podendo ser
+  generalizada para a totalidade da base de código.
 - O estudo comparou apenas dois projetos derivados do mesmo domínio de
   problema (controle de ponto eletrônico) e desenvolvidos pelo mesmo autor,
   fator que pode ter introduzido viés de familiaridade progressiva com o
@@ -252,4 +332,11 @@ aumento mensurável na quantidade de arquivos e de camadas de indireção
 necessárias para implementar a mesma funcionalidade, o que caracteriza um
 compromisso (*trade-off*) entre desacoplamento e simplicidade estrutural,
 consistente com o que é descrito na literatura consultada sobre os dois
-estilos arquiteturais.
+estilos arquiteturais. A métrica formal de cobertura de código (JaCoCo,
+Seção 2.4) corroborou esse *trade-off* com um número concreto: a camada de
+negócio possui cobertura equivalente entre as duas versões (~40%), mas a
+Clean Architecture introduziu 190 linhas de código de infraestrutura
+(adaptadores e *mappers*) inteiramente não testadas — um custo de manutenção
+e de esforço de teste que a arquitetura em camadas não precisa pagar, por
+delegar a persistência diretamente ao Spring Data JPA.
+

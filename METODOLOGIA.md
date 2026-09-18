@@ -84,6 +84,11 @@ A coleta de dados foi realizada por meio de:
   transcrição arquitetural (por exemplo, substituição de dependências diretas
   do Spring Security por abstrações de domínio), utilizado como fonte
   qualitativa complementar às métricas quantitativas.
+- **Instrumentação de cobertura de código** com o plugin `jacoco-maven-plugin`
+  (execução `prepare-agent` + `report` na fase `test`), gerando relatórios em
+  `target/site/jacoco/` (HTML e CSV) a partir da mesma execução de `mvn test`
+  usada na coleta dos resultados de testes, garantindo que a cobertura medida
+  corresponda exatamente à suíte de testes executada.
 
 ## 5. Análise dos Dados
 
@@ -94,6 +99,9 @@ comparativos contrastando, para cada projeto:
 - Número de classes/arquivos por camada arquitetural;
 - Quantidade de testes unitários e resultado de execução (aprovados,
   falhos, tempo de execução);
+- Percentual de cobertura de linhas, desvios (*branches*) e instruções,
+  agregado por projeto e por camada arquitetural, extraído do relatório CSV
+  do JaCoCo por meio de script auxiliar (`scripts/coverage_by_layer.ps1`);
 - Grau de acoplamento entre camadas, verificado pela presença ou ausência de
   dependência direta de classes de regra de negócio em relação a anotações e
   APIs do framework Spring.
@@ -117,7 +125,8 @@ O desenvolvimento e a coleta de dados foram realizados no seguinte ambiente:
 | Banco de dados | PostgreSQL |
 | Controle de versão de schema | Flyway |
 | Autenticação | Spring Security + JSON Web Token (JJWT 0.9.1) |
-| Framework de testes | JUnit 5 + Spring Boot Test |
+| Framework de testes | JUnit 5 + Spring Boot Test + Mockito |
+| Cobertura de código | JaCoCo 0.8.12 (jacoco-maven-plugin) |
 | Frontend | React, TypeScript, Vite |
 | Sistema operacional | Windows |
 | Editor/IDE | Visual Studio Code |
